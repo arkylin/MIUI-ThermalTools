@@ -31,31 +31,21 @@ import cn.fkj233.miui.R
 import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.data.LayoutPair
 import cn.fkj233.ui.activity.dp2px
-import cn.fkj233.ui.activity.isRtl
+import cn.fkj233.ui.activity.fragment.MIUIFragment
 
-class TextSummaryArrowV(val textSummaryV: TextSummaryV, private val dataBindingRecv: DataBinding.Binding.Recv? = null): BaseView() {
+class TextWithArrowV(private val textV: TextV, private val dataBindingRecv: DataBinding.Binding.Recv? = null) : BaseView {
 
     override fun getType(): BaseView {
         return this
     }
 
     override fun create(context: Context, callBacks: (() -> Unit)?): View {
-        textSummaryV.notShowMargins(true)
+        textV.notShowMargins(true)
         return LinearContainerV(LinearContainerV.HORIZONTAL, arrayOf(
+            LayoutPair(textV.create(context, callBacks), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)),
             LayoutPair(
-                textSummaryV.create(context, callBacks),
-                LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
-                )
-            ),
-            LayoutPair(
-                ImageView(context).also {
-                    it.background = context.getDrawable(R.drawable.ic_right_arrow)
-                },
-                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_VERTICAL }
-            )
+                ImageView(context).also { it.background = context.getDrawable(R.drawable.ic_right_arrow) },
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_VERTICAL })
         ), layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -63,6 +53,20 @@ class TextSummaryArrowV(val textSummaryV: TextSummaryV, private val dataBindingR
             it.setMargins(0, dp2px(context, 17.75f),0, dp2px(context, 17.75f))
         }).create(context, callBacks).also {
             dataBindingRecv?.setView(it)
+        }
+    }
+
+    override fun onDraw(thiz: MIUIFragment, group: LinearLayout, view: View) {
+        thiz.apply {
+            group.apply {
+                addView(view)
+                textV.onClickListener?.let { unit ->
+                    setOnClickListener {
+                        unit()
+                        callBacks?.let { it1 -> it1() }
+                    }
+                }
+            }
         }
     }
 }

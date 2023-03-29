@@ -20,33 +20,44 @@
  * <https://github.com/577fkj/BlockMIUI/blob/main/LICENSE>.
  */
 
+@file:Suppress("FunctionName")
+
 package cn.fkj233.ui.dialog
 
 import android.app.Dialog
 import android.content.Context
-import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
-import android.view.ViewTreeObserver
 import android.view.WindowManager
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
+import android.widget.TextView
 import cn.fkj233.miui.R
 import cn.fkj233.ui.activity.dp2px
-import cn.fkj233.ui.activity.getDisplay
 import kotlin.math.roundToInt
 
 class NewDialog(context: Context, private val newStyle: Boolean = true, val build: NewDialog.() -> Unit) : Dialog(context, R.style.CustomDialog) {
+
+    private var finallyCallBacks: ((View) -> Unit)? = null
+
     private val title by lazy {
         TextView(context).also { textView ->
             textView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also {
-                it.setMargins(0, dp2px(context, 20f), 0, dp2px(context, 10f))
+                it.setMargins(0, dp2px(context, 20f), 0, dp2px(context, 20f))
             }
-            textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 25f)
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                textView.paint.typeface = Typeface.create(null, 500, false)
+            }
             textView.setTextColor(context.getColor(R.color.whiteText))
             textView.gravity = Gravity.CENTER
             textView.setPadding(0, dp2px(context, 10f), 0, 0)
@@ -56,9 +67,9 @@ class NewDialog(context: Context, private val newStyle: Boolean = true, val buil
     private val message by lazy {
         TextView(context).also { textView ->
             textView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also {
-                it.setMargins(dp2px(context, 10f), 0, dp2px(context, 10f), dp2px(context, 5f))
+                it.setMargins(dp2px(context, 20f), 0, dp2px(context, 20f), dp2px(context, 5f))
             }
-            textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             textView.setTextColor(context.getColor(R.color.whiteText))
             textView.gravity = Gravity.CENTER
             textView.visibility = View.GONE
@@ -68,53 +79,20 @@ class NewDialog(context: Context, private val newStyle: Boolean = true, val buil
 
     private val editText by lazy {
         EditText(context).also { editText ->
-            editText.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(context, 55f)).also {
-                it.setMargins(dp2px(context, 25f), dp2px(context, 10f), dp2px(context, 25f), 0)
+            editText.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also {
+                it.setMargins(dp2px(context, 30f), dp2px(context, 10f), dp2px(context, 30f), 0)
             }
-            editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 25f)
+            editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             editText.setTextColor(context.getColor(R.color.whiteText))
-            editText.gravity = Gravity.CENTER
-            editText.setPadding(dp2px(context, 8f), dp2px(context, 8f), dp2px(context, 8f), dp2px(context, 8f))
+            editText.gravity = Gravity.CENTER_VERTICAL
+            editText.setPadding(dp2px(context, 20f), dp2px(context, 15f), dp2px(context, 20f), dp2px(context, 15f))
             editText.visibility = View.GONE
             editText.background = context.getDrawable(R.drawable.editview_background)
-            val mHeight = dp2px(context, 55f)
-            val maxHeight = getDisplay(context).height / 2
-            editText.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    editText.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    val params = editText.layoutParams as LinearLayout.LayoutParams
-                    if (editText.lineCount <= 1) {
-                        params.height = mHeight
-                    } else {
-                        var tempHeight = mHeight
-                        for (i in 0..editText.lineCount) {
-                            tempHeight += mHeight / 2 - 20
-                        }
-                        params.height = if (tempHeight >= maxHeight) maxHeight else tempHeight
-                    }
-                    editText.layoutParams = params
-                }
-            })
-            editText.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
-                override fun afterTextChanged(p0: Editable?) {}
-
-                override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-                    val params = editText.layoutParams as LinearLayout.LayoutParams
-                    if (editText.lineCount <= 1) {
-                        params.height = mHeight
-                    } else {
-                        var tempHeight = mHeight
-                        for (i in 0..editText.lineCount) {
-                            tempHeight += mHeight / 2 - 20
-                        }
-                        params.height = if (tempHeight >= maxHeight) maxHeight else tempHeight
-                    }
-                    editText.layoutParams = params
-                }
-            })
+            editText.isSingleLine = true
+            editText.setHintTextColor(context.getColor(R.color.hintText))
         }
     }
+
 
     private val view by lazy {
         LinearLayout(context).also { linearLayout ->
@@ -125,7 +103,7 @@ class NewDialog(context: Context, private val newStyle: Boolean = true, val buil
         }
     }
 
-    var bView: LinearLayout
+    private var bView: LinearLayout
 
     private val root = RelativeLayout(context).also { viewRoot ->
         viewRoot.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT)
@@ -139,26 +117,36 @@ class NewDialog(context: Context, private val newStyle: Boolean = true, val buil
                     it.gravity = Gravity.CENTER_HORIZONTAL
                 }
                 linearLayout.orientation = LinearLayout.VERTICAL
-                linearLayout.setPadding(0, dp2px(context, 16f), 0, dp2px(context, 35f))
+                linearLayout.setPadding(0, 0, 0, dp2px(context, 35f))
                 bView = linearLayout
             })
         })
     }
 
-    fun Button(text: CharSequence?, enable: Boolean = true, cancelStyle: Boolean = false, callBacks: (View) -> Unit) {
+    fun Button(text: CharSequence?, enable: Boolean = true, cancelStyle: Boolean = false) {
+        Button(text, enable, cancelStyle, null)
+    }
+
+    fun Button(text: CharSequence?, enable: Boolean = true, cancelStyle: Boolean = false, callBacks: ((View) -> Unit)?) {
         bView.addView(Button(context).also { buttonView ->
-            buttonView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(context, 60f), 1f).also {
-                it.setMargins(dp2px(context, 25f), dp2px(context, 10f), dp2px(context, 25f), 0)
+            buttonView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(context, 48f), 1f).also {
+                it.setMargins(dp2px(context, 30f), dp2px(context, 10f), dp2px(context, 30f), 0)
                 it.gravity = Gravity.CENTER
             }
-            buttonView.setTextColor(context.getColor(if (cancelStyle) R.color.whiteText else R.color.white))
-            buttonView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            buttonView.setPadding(0, 0, 0, 0)
+            buttonView.typeface = Typeface.defaultFromStyle(Typeface.BOLD)
+            buttonView.setTextColor(context.getColor(if (cancelStyle) R.color.LButtonText else R.color.RButtonText))
+            if (!enable) {
+                buttonView.setTextColor(context.getColor(R.color.disable_button_text))
+            }
+            buttonView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17.5f)
             buttonView.text = text
             buttonView.isEnabled = enable
             buttonView.stateListAnimator = null
             buttonView.background = context.getDrawable(if (cancelStyle) R.drawable.l_button_background else R.drawable.r_button_background)
             buttonView.setOnClickListener {
-                callBacks(it)
+                callBacks?.invoke(it)
+                finallyCallBacks?.invoke(it)
             }
         })
     }
@@ -194,7 +182,7 @@ class NewDialog(context: Context, private val newStyle: Boolean = true, val buil
         window!!.setWindowAnimations(R.style.DialogAnim)
         super.show()
         val layoutParams = window!!.attributes
-        layoutParams.dimAmount = 0.3F
+        layoutParams.dimAmount = 0.5F
         if (newStyle) {
             val resources = context.resources
             val dm: DisplayMetrics = resources.displayMetrics
@@ -215,17 +203,23 @@ class NewDialog(context: Context, private val newStyle: Boolean = true, val buil
         }
     }
 
-    fun setMessage(text: CharSequence?) {
+    fun setMessage(text: CharSequence?, isCenter: Boolean = true) {
+        if (isCenter) {
+            message.gravity = Gravity.CENTER
+        } else {
+            message.gravity = Gravity.START
+        }
         message.apply {
             this.text = text
             visibility = View.VISIBLE
         }
     }
 
-    fun setEditText(text: String, hint: String, editCallBacks: ((String) -> Unit)? = null) {
+    fun setEditText(text: String, hint: String, isSingleLine: Boolean = true, editCallBacks: ((String) -> Unit)? = null) {
         editText.apply {
             setText(text.toCharArray(), 0, text.length)
             this.hint = hint
+            this.isSingleLine = isSingleLine
             visibility = View.VISIBLE
             editCallBacks?.let {
                 addTextChangedListener(object : TextWatcher {
@@ -238,6 +232,10 @@ class NewDialog(context: Context, private val newStyle: Boolean = true, val buil
                 })
             }
         }
+    }
+
+    fun Finally(callBacks: (View) -> Unit) {
+        finallyCallBacks = callBacks
     }
 
     fun getEditText(): String = editText.text.toString()

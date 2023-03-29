@@ -24,31 +24,23 @@ package cn.fkj233.ui.activity.view
 
 import android.content.Context
 import android.view.View
-import android.view.ViewGroup
 import android.widget.LinearLayout
 import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.data.LayoutPair
+import cn.fkj233.ui.activity.dp2px
 
-class LinearContainerV(private val orientation: Int, private val pairs: Array<LayoutPair>, val descendantFocusability: Int? = null, private val dataBindingRecv: DataBinding.Binding.Recv? = null, private val click: ((View) -> Unit)? = null, val layoutParams: ViewGroup.LayoutParams? = null): BaseView {
-    companion object {
-        const val VERTICAL = LinearLayout.VERTICAL
-        const val HORIZONTAL = LinearLayout.HORIZONTAL
-        const val FOCUS_BLOCK_DESCENDANTS = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-    }
+class TextWithSeekBarV(private val textV: TextV, private val seekBarWithTextV: SeekBarWithTextV, private val dataBindingRecv: DataBinding.Binding.Recv? = null) : BaseView {
 
-    override fun getType(): BaseView {
-        return this
-    }
+    override fun getType(): BaseView = this
 
     override fun create(context: Context, callBacks: (() -> Unit)?): View {
-        return LinearLayout(context).also {
-            it.orientation = orientation
-            layoutParams?.let { it1 -> it.layoutParams = it1 }
-            descendantFocusability?.let { it1 -> it.descendantFocusability = it1 }
-            click?.let { it1 -> it.setOnClickListener { it2 -> it1(it2) } }
-            for (pair in pairs) {
-                it.addView(pair.view, pair.layoutParams)
-            }
+        textV.notShowMargins(true)
+        return LinearContainerV(
+            LinearContainerV.VERTICAL, arrayOf(
+                LayoutPair(textV.create(context, callBacks), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.setMargins(0, dp2px(context, 17.75f), 0, dp2px(context, 5f)) }),
+                LayoutPair(seekBarWithTextV.create(context, callBacks), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            ), layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        ).create(context, callBacks).also {
             dataBindingRecv?.setView(it)
         }
     }

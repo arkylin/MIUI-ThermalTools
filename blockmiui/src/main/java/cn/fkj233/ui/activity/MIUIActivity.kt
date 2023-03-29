@@ -24,8 +24,10 @@
 
 package cn.fkj233.ui.activity
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.FragmentManager
+import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Typeface
 import android.os.Bundle
@@ -36,13 +38,17 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.annotation.Keep
 import cn.fkj233.miui.R
+import cn.fkj233.ui.activity.annotation.BMMainPage
+import cn.fkj233.ui.activity.annotation.BMMenuPage
+import cn.fkj233.ui.activity.annotation.BMPage
 import cn.fkj233.ui.activity.data.AsyncInit
+import cn.fkj233.ui.activity.data.BasePage
 import cn.fkj233.ui.activity.data.InitView
 import cn.fkj233.ui.activity.data.SafeSharedPreferences
 import cn.fkj233.ui.activity.fragment.MIUIFragment
 import cn.fkj233.ui.activity.view.BaseView
-import kotlin.system.exitProcess
 
 /**
  * @version: V1.0
@@ -52,11 +58,8 @@ import kotlin.system.exitProcess
  * @description: BaseActivity / 基本Activity
  * @data: 2022-02-05 18:30
  **/
+@Keep
 open class MIUIActivity : Activity() {
-
-    @Suppress("LeakingThis")
-    private val activity = this
-
     private var callbacks: (() -> Unit)? = null
 
     private var thisName: ArrayList<String> = arrayListOf()
@@ -69,6 +72,12 @@ open class MIUIActivity : Activity() {
 
     companion object {
         var safeSP: SafeSharedPreferences = SafeSharedPreferences()
+
+        @SuppressLint("StaticFieldLeak")
+        lateinit var context: Context
+
+        @SuppressLint("StaticFieldLeak")
+        lateinit var activity: MIUIActivity
     }
 
     private val backButton by lazy {
@@ -76,9 +85,9 @@ open class MIUIActivity : Activity() {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also {
                 it.gravity = Gravity.CENTER_VERTICAL
                 if (isRtl(context))
-                    it.setMargins(dp2px(activity, 5f), 0, 0,0)
+                    it.setMargins(dp2px(activity, 5f), 0, 0, 0)
                 else
-                    it.setMargins(0, 0, dp2px(activity, 5f),0)
+                    it.setMargins(0, 0, dp2px(activity, 5f), 0)
             }
             background = getDrawable(R.drawable.abc_ic_ab_back_material)
             visibility = View.GONE
@@ -92,12 +101,13 @@ open class MIUIActivity : Activity() {
         ImageView(activity).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_VERTICAL }
             background = getDrawable(R.drawable.abc_ic_menu_overflow_material)
+            visibility = View.GONE
             if (isRtl(context))
-                setPadding(dp2px(activity, 25f), 0, 0,0)
+                setPadding(dp2px(activity, 25f), 0, 0, 0)
             else
-                setPadding(0, 0, dp2px(activity, 25f),0)
+                setPadding(0, 0, dp2px(activity, 25f), 0)
             setOnClickListener {
-                showFragment("Menu")
+                showFragment(if (this@MIUIActivity::initViewData.isInitialized) "Menu" else "__menu__")
             }
         }
     }
@@ -131,12 +141,15 @@ open class MIUIActivity : Activity() {
     var isLoad = true
 
     /**
-     *  返回到最后一页直接退出(不保留后台) / Return to the last page and exit directly (without retaining the background)
+     *  退出时是否保留后台 / Retaining the background
      */
-    private var isExit = false
+    @Suppress("MemberVisibilityCanBePrivate")
+    var isExit = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        context = this
+        activity = this
         actionBar?.hide()
         setContentView(LinearLayout(activity).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT)
@@ -153,26 +166,77 @@ open class MIUIActivity : Activity() {
             addView(frameLayout)
         })
         if (savedInstanceState != null) {
-            viewData = InitView(dataList).apply(initViewData)
-            if (viewData.isMenu) menuButton.visibility = View.VISIBLE else menuButton.visibility = View.GONE
+            if (this::initViewData.isInitialized) {
+                viewData = InitView(dataList).apply(initViewData)
+                setMenuShow(viewData.isMenu)
+                val list = savedInstanceState.getStringArrayList("this")!!
+                fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+                for (name: String in list) {
+                    showFragment(name)
+                }
+                if (list.size == 1) {
+                    setBackupShow(viewData.mainShowBack)
+                }
+                return
+            }
             val list = savedInstanceState.getStringArrayList("this")!!
             fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+            initAllPage()
+            if (pageInfo.containsKey("__menu__")) setMenuShow(list.size == 1)
             for (name: String in list) {
                 showFragment(name)
             }
-            if (list.size == 1) {
-                if (viewData.mainShowBack) backButton.visibility = View.VISIBLE else backButton.visibility = View.GONE
-            }
         } else {
             if (isLoad) {
-                viewData = InitView(dataList).apply(initViewData)
-                if (!viewData.mainShowBack) backButton.visibility = View.GONE
-                if (viewData.isMenu) menuButton.visibility = View.VISIBLE else menuButton.visibility = View.GONE
-                showFragment("Main")
+                if (this::initViewData.isInitialized) {
+                    viewData = InitView(dataList).apply(initViewData)
+                    setBackupShow(!viewData.mainShowBack)
+                    setMenuShow(viewData.isMenu)
+                    showFragment("Main")
+                    return
+                }
+                initAllPage()
+                showFragment("__main__")
+            }
+        }
+        val showFragmentName = intent.getStringExtra("showFragment").toString()
+        if (showFragmentName != "null" && showFragmentName.isNotEmpty()) {
+            if (pageInfo.containsKey(showFragmentName)) {
+                showFragment(showFragmentName)
+                return
             }
         }
     }
 
+    private val pageInfo: HashMap<String, BasePage> = hashMapOf()
+    private val pageList: ArrayList<Class<out BasePage>> = arrayListOf()
+
+    fun registerPage(basePage: Class<out BasePage>) {
+        pageList.add(basePage)
+    }
+
+    fun initAllPage() {
+        pageList.forEach { basePage ->
+            if (basePage.getAnnotation(BMMainPage::class.java) != null) {
+                val mainPage = basePage.newInstance()
+                mainPage.activity = this
+                pageInfo["__main__"] = mainPage
+            } else if (basePage.getAnnotation(BMMenuPage::class.java) != null) {
+                val menuPage = basePage.newInstance()
+                menuPage.activity = this
+                menuButton.visibility = View.VISIBLE
+                pageInfo["__menu__"] = menuPage
+            } else if (basePage.getAnnotation(BMPage::class.java) != null) {
+                val menuPage = basePage.newInstance()
+                menuPage.activity = this
+                pageInfo[basePage.getAnnotation(BMPage::class.java)!!.key] = menuPage
+            } else {
+                throw Exception("Page must be annotated with BMMainPage or BMMenuPage or BMPage")
+            }
+        }
+    }
+
+    @Deprecated("This method is obsolete")
     fun initView(iView: InitView.() -> Unit) {
         initViewData = iView
     }
@@ -203,37 +267,123 @@ open class MIUIActivity : Activity() {
      *  @param: key 注册的key / Register key
      */
     fun showFragment(key: String) {
-        title = dataList[key]?.title
+        if (this::initViewData.isInitialized) {
+            title = dataList[key]?.title
+            thisName.add(key)
+            val frame = MIUIFragment(key)
+            if (key != "Main" && fragmentManager.backStackEntryCount != 0) {
+                fragmentManager.beginTransaction().let {
+                    if (key != "Menu") {
+                        if (isRtl(activity)) it.setCustomAnimations(R.animator.slide_left_in, R.animator.slide_right_out, R.animator.slide_right_in, R.animator.slide_left_out)
+                        else it.setCustomAnimations(R.animator.slide_right_in, R.animator.slide_left_out, R.animator.slide_left_in, R.animator.slide_right_out)
+                    } else {
+                        if (isRtl(activity)) it.setCustomAnimations(R.animator.slide_right_in, R.animator.slide_left_out, R.animator.slide_left_in, R.animator.slide_right_out)
+                        else it.setCustomAnimations(R.animator.slide_left_in, R.animator.slide_right_out, R.animator.slide_right_in, R.animator.slide_left_out)
+                    }
+                }.replace(frameLayoutId, frame).addToBackStack(key).commit()
+                backButton.visibility = View.VISIBLE
+                setMenuShow(dataList[key]?.hideMenu == false)
+            } else {
+                setBackupShow(viewData.mainShowBack)
+                fragmentManager.beginTransaction().replace(frameLayoutId, frame).addToBackStack(key).commit()
+            }
+            return
+        }
+        if (!pageInfo.containsKey(key)) {
+            throw Exception("No page found")
+        }
+        val thisPage = pageInfo[key]!!
+        title = getPageTitle(thisPage)
         thisName.add(key)
         val frame = MIUIFragment(key)
-        if (key != "Main" && fragmentManager.backStackEntryCount != 0) {
+        if (key != "__main__" && fragmentManager.backStackEntryCount != 0) {
             fragmentManager.beginTransaction().let {
-                if (key != "Menu") {
-                    if (isRtl(activity))
-                        it.setCustomAnimations(R.animator.slide_left_in, R.animator.slide_right_out, R.animator.slide_right_in, R.animator.slide_left_out)
-                    else
-                        it.setCustomAnimations(R.animator.slide_right_in, R.animator.slide_left_out, R.animator.slide_left_in, R.animator.slide_right_out)
+                if (key != "__menu__") {
+                    if (isRtl(activity)) it.setCustomAnimations(R.animator.slide_left_in, R.animator.slide_right_out, R.animator.slide_right_in, R.animator.slide_left_out)
+                    else it.setCustomAnimations(R.animator.slide_right_in, R.animator.slide_left_out, R.animator.slide_left_in, R.animator.slide_right_out)
                 } else {
-                    if (isRtl(activity))
-                        it.setCustomAnimations(R.animator.slide_right_in, R.animator.slide_left_out, R.animator.slide_left_in, R.animator.slide_right_out)
-                    else
-                        it.setCustomAnimations(R.animator.slide_left_in, R.animator.slide_right_out, R.animator.slide_right_in, R.animator.slide_left_out)
+                    if (isRtl(activity)) it.setCustomAnimations(R.animator.slide_right_in, R.animator.slide_left_out, R.animator.slide_left_in, R.animator.slide_right_out)
+                    else it.setCustomAnimations(R.animator.slide_left_in, R.animator.slide_right_out, R.animator.slide_right_in, R.animator.slide_left_out)
                 }
             }.replace(frameLayoutId, frame).addToBackStack(key).commit()
-            backButton.visibility = View.VISIBLE
-            if (dataList[key]?.hideMenu == true) menuButton.visibility = View.GONE
+            setBackupShow(true)
+            if (key !in arrayOf("__main__", "__menu__")) setMenuShow(!getPageHideMenu(thisPage))
+            if (key == "__menu__") setMenuShow(false)
         } else {
-            if (viewData.mainShowBack) backButton.visibility = View.VISIBLE
+            setMenuShow(pageInfo.containsKey("__menu__"))
+            setBackupShow(pageInfo["__main__"]!!.javaClass.getAnnotation(BMMainPage::class.java)!!.showBack)
             fragmentManager.beginTransaction().replace(frameLayoutId, frame).addToBackStack(key).commit()
         }
     }
 
+    fun setMenuShow(show: Boolean) {
+        if (this::initViewData.isInitialized) {
+            if (!dataList.containsKey("Menu")) return
+            if (show) menuButton.visibility = View.VISIBLE
+            else menuButton.visibility = View.GONE
+            return
+        }
+        if (pageInfo.containsKey("__menu__")) {
+            if (show) {
+                menuButton.visibility = View.VISIBLE
+            } else {
+                menuButton.visibility = View.GONE
+            }
+        }
+    }
+
+    fun setBackupShow(show: Boolean) {
+        if (show) backButton.visibility = View.VISIBLE else backButton.visibility = View.GONE
+    }
+
+    private fun getPageHideMenu(basePage: BasePage): Boolean {
+        return basePage.javaClass.getAnnotation(BMPage::class.java)?.hideMenu == true
+    }
+
+    private fun getPageTitle(basePage: BasePage): String {
+        basePage.javaClass.getAnnotation(BMPage::class.java)?.let {
+            return it.title.ifEmpty { if (it.titleId != 0) activity.getString(it.titleId) else basePage.getTitle() }
+        }
+        basePage.javaClass.getAnnotation(BMMainPage::class.java)?.let {
+            return it.title.ifEmpty { if (it.titleId != 0) activity.getString(it.titleId) else basePage.getTitle() }
+        }
+        basePage.javaClass.getAnnotation(BMMenuPage::class.java)?.let {
+            return it.title.ifEmpty { if (it.titleId != 0) activity.getString(it.titleId) else basePage.getTitle() }
+        }
+        throw Exception("No title found")
+    }
+
+    fun getTopPage(): String {
+        return thisName[thisName.lastSize()]
+    }
+
     fun getThisItems(key: String): List<BaseView> {
-        return dataList[key]?.itemList ?: arrayListOf()
+        if (this::initViewData.isInitialized) {
+            return dataList[key]?.itemList ?: arrayListOf()
+        }
+        val currentPage = pageInfo[key]!!
+        if (currentPage.itemList.size == 0) {
+            currentPage.onCreate()
+        }
+        return currentPage.itemList
     }
 
     fun getThisAsync(key: String): AsyncInit? {
-        return dataList[key]?.async
+        if (this::initViewData.isInitialized) {
+            return dataList[key]?.async
+        }
+        val currentPage = pageInfo[key]!!
+        if (currentPage.itemList.size == 0) {
+            currentPage.onCreate()
+        }
+        return object : AsyncInit {
+            override val skipLoadItem: Boolean
+                get() = currentPage.skipLoadItem
+
+            override fun onInit(fragment: MIUIFragment) {
+                currentPage.asyncInit(fragment)
+            }
+        }
     }
 
     fun getAllCallBacks(): (() -> Unit)? {
@@ -251,18 +401,38 @@ open class MIUIActivity : Activity() {
 
     override fun onBackPressed() {
         if (fragmentManager.backStackEntryCount <= 1) {
-            finish()
-            if (isExit) exitProcess(0)
+            if (isExit) {
+                finishAndRemoveTask()
+            } else {
+                finish()
+            }
         } else {
             thisName.removeAt(thisName.lastSize())
             val name = fragmentManager.getBackStackEntryAt(fragmentManager.backStackEntryCount - 2).name
-            if (name == "Main") {
-                if (!viewData.mainShowBack) backButton.visibility = View.GONE
-                if (viewData.isMenu) menuButton.visibility = View.VISIBLE
-            } else {
-                menuButton.visibility = if (dataList[name]?.hideMenu == true) View.GONE else View.VISIBLE
+            when (name) {
+                "Main" -> {
+                    if (!viewData.mainShowBack) backButton.visibility = View.GONE
+                    if (viewData.isMenu) menuButton.visibility = View.VISIBLE
+                }
+
+                "__main__" -> {
+                    if (!pageInfo[name]!!.javaClass.getAnnotation(BMMainPage::class.java)!!.showBack) backButton.visibility = View.GONE
+                    setMenuShow(pageInfo.containsKey("__menu__"))
+                }
+
+                else -> {
+                    if (this::initViewData.isInitialized) {
+                        setMenuShow(dataList[name]?.hideMenu == false)
+                    } else {
+                        setMenuShow(!getPageHideMenu(pageInfo[name]!!))
+                    }
+                }
             }
-            titleView.text = dataList[name]?.title
+            title = if (this::initViewData.isInitialized) {
+                dataList[name]?.title
+            } else {
+                getPageTitle(pageInfo[name]!!)
+            }
             fragmentManager.popBackStack()
         }
     }

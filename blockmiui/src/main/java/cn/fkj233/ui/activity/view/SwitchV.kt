@@ -29,7 +29,7 @@ import cn.fkj233.ui.activity.MIUIActivity
 import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.switch.MIUISwitch
 
-class SwitchV(private val key: String, private val defValue: Boolean = false, private val dataBindingRecv: DataBinding.Binding.Recv? = null, private val dataBindingSend: DataBinding.Binding.Send? = null, private val onClickListener: ((Boolean) -> Unit)? = null): BaseView() {
+class SwitchV(private val key: String, private val defValue: Boolean = false, private val dataBindingRecv: DataBinding.Binding.Recv? = null, private val dataBindingSend: DataBinding.Binding.Send? = null, private val onClickListener: ((Boolean) -> Unit)? = null): BaseView {
 
     lateinit var switch: MIUISwitch
 

@@ -30,9 +30,9 @@ import android.util.TypedValue
 import android.view.Display
 import android.view.View
 import android.view.WindowManager
+import java.util.*
 
-fun dp2px(context: Context, dpValue: Float): Int =
-    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dpValue, context.resources.displayMetrics).toInt()
+fun dp2px(context: Context, dpValue: Float): Int = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dpValue, context.resources.displayMetrics).toInt()
 
 fun getDisplay(context: Context): Display {
     return (context.applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay

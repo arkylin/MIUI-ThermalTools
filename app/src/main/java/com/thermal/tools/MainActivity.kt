@@ -12,10 +12,11 @@ package com.thermal.tools
 //import cn.fkj233.ui.activity.view.TextV
 //import cn.fkj233.ui.dialog.NewDialog
 //import android.support.v4.app.ActivityCompat
-import android.annotation.SuppressLint
 //import android.content.Context
-import android.content.Intent
 //import android.content.SharedPreferences
+import android.R.attr.key
+import android.annotation.SuppressLint
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -34,15 +35,26 @@ import java.io.FileOutputStream
 import java.util.*
 import kotlin.system.exitProcess
 
+
 @SuppressLint("SuspiciousIndentation")
 class MainActivity : MIUIActivity() {
     private val handler by lazy { Handler(Looper.getMainLooper()) }
     private val activity = this;
 
-    private val dirsrc = "/system/vendor/etc/"
-    private val dir = File(dirsrc)
-    private val files: Array<out String>? = dir.list()
-    private var thermalfiles = arrayListOf<String>()
+    private val datadirsrc = "/data/vendor/thermal/config/"
+    private val datadir = File(datadirsrc)
+    private val datafiles: Array<out String>? = datadir.list()
+//    private var datathermalfiles = arrayListOf<String>()
+
+    private val vendordirsrc = "/system/vendor/etc/"
+    private val vendordir = File(vendordirsrc)
+    private val vendorfiles: Array<out String>? = vendordir.list()
+//    private var vendorthermalfiles = arrayListOf<String>()
+
+    private var iswriteable = 0
+
+//    private var dirsrc = datadirsrc
+
 
     init {
         initView {
@@ -58,12 +70,12 @@ class MainActivity : MIUIActivity() {
                     }
                     setRButton(R.string.confirm) {
                         dismiss()
+                        firstRun.mkdirs()
+                        // 记录应用已启动过
                     }
                 }.show()
-                firstRun.mkdirs()
-                // 记录应用已启动过
             }
-            val fileNames = arrayOf("origin", "onekey", "batch", "expert", "Super_Charge")
+            val fileNames = arrayOf("origin", "onekey", "batch", "expert", "Super_Charge","data")
             fileNames.forEach { folder ->
                 listOf(filesDir, cacheDir).forEach { dir ->
                     val file = File(dir, folder)
@@ -88,16 +100,411 @@ class MainActivity : MIUIActivity() {
                         getString(R.string.batch_mode), //批量
                         tips = getString(R.string.batch_mode_tips),
                         onClickListener = {
-                            showFragment("batch_mode")
+//                            showFragment("batch_mode")
                         })
                 )
                 TextSummaryArrow(
                     TextSummaryV(
-                        getString(R.string.explore_thermal), //专业
-                        tips = getString(R.string.explore_thermal_tips),
+                        getString(R.string.explore_thermal_vendor), //vendor专业
+                        tips = getString(R.string.explore_thermal_vendor_tips),
                         onClickListener = {
-//                            showToast(getString(R.string.getting_thermal_file))
+//                            ShellUtils.execCommand("cp /data/vendor/thermal/config/* "+filesDir+"/data", true)
+                            var dirsrc = vendordirsrc
+                            var dir = File(dirsrc)
+                            var files: Array<out String>? = dir.list()
+                            register("expert_mode", getString(R.string.explore_thermal_vendor), false) {
+                                async = object : AsyncInit {
+                                    override val skipLoadItem: Boolean = true
+                                    override fun onInit(fragment: MIUIFragment) {
+                                        fragment.showLoading()
+                                        Thread.sleep(100)
+//                                        fragment.addItem(TextV("Test"))
+                                        fragment.closeLoading()
+//                        showToast(getString(R.string.got_file))
+                                        fragment.initData()
+                                    }
+                                }
+                                val thermalfiles = Utils.getFileLists(files)
+                                for (thermalfile in thermalfiles) {
+                                    val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
+                                    if (Utils.showThermalTips(thermalnametips) != "不要动") {
+                                        TextSummaryArrow(
+                                            TextSummaryV(
+                                                thermalfile,
+                                                tips = Utils.showThermalTips(thermalnametips),
+                                                onClickListener = {
+                                                    showFragment("Edit$thermalfile")
+                                                })
+                                        )
+                                        val file = File(cacheDir.path + "/origin", thermalfile)
+                                        val output = FileOutputStream(file.absolutePath)
+                                        val input = FileInputStream(dirsrc + thermalfile)
+                                        AESCode.decrypt(input, output)
+                                        input.close()
+                                        output.close()
+                                    }
+                                }
+                                //
+                                for (thermalfile in thermalfiles) {
+                                    //4k 8k normal ...
+                                    val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
+                                    if (Utils.showThermalTips(thermalnametips) != "不要动") {
+                                        val file = File(cacheDir.path + "/origin", thermalfile)
+                                        val content = file.readText()
+                                        val pattern = Regex("\\[(.*?)]") //不能听idea提示的去掉"\\"
+                                        register("Edit$thermalfile", thermalfile, false) {
+                                            pattern.findAll(content).forEach {
+                                                //SS-CPU0 MONITOR-BAT...
+                                                val withoutzhongkuohaocate = it.value.replace(pattern, "$1")
+                                                val item = it.value.replace(pattern, "$1")
+                                                    .replace(thermalnametips.uppercase() + "-", "")
+                                                //                            val iteml = "$thermalnametips/$item"
+                                                TextSummaryArrow(
+                                                    TextSummaryV(
+                                                        item,
+                                                        //                                    tips = showThermalTips(thermalnametips),
+                                                        tips = Utils.showConfTips(item),
+                                                        onClickListener = {
+                                                            showFragment("$thermalnametips/$item")
+                                                        })
+                                                )
+                                                //最后显示页面
+                                                register("$thermalnametips/$item", "$thermalnametips/$item", false) {
+                                                    Utils.getValue(
+                                                        content,
+                                                        withoutzhongkuohaocate,
+                                                        "algo_type"
+                                                    )?.get(0)?.let { it2 ->
+                                                        SpinnerV(
+                                                            it2.toString(), dropDownWidth = 170F
+                                                        ) {
+                                                            add("ss") {}
+                                                            add("monitor") {}
+                                                            add("sic") {}
+                                                            add("simulated") {}
+                                                        }.let { it3 ->
+                                                            TextWithSpinner(
+                                                                TextV("algo_type"),
+                                                                it3
+                                                            )
+                                                        }
+                                                    }
+                                                    Utils.getValue(
+                                                        content,
+                                                        withoutzhongkuohaocate,
+                                                        "sensor"
+                                                    )?.get(0)?.let { it2 ->
+                                                        SpinnerV(
+                                                            it2.toString(), dropDownWidth = 200F
+                                                        ) {
+                                                            add("VIRTUAL-SENSOR0") {}
+                                                            add("battery") {}
+                                                            add("flash_therm") {}
+                                                            add("quiet_therm") {}
+                                                            add("wifi_therm") {}
+                                                            add("cpu_therm") {}
+                                                            add("charger_therm0") {}
+                                                            add("pa_therm0") {}
+                                                            add("pa_therm1") {}
+                                                        }.let { it3 ->
+                                                            TextWithSpinner(
+                                                                TextV("sensor"),
+                                                                it3
+                                                            )
+                                                        }
+                                                    }
+                                                    Utils.getValue(
+                                                        content,
+                                                        withoutzhongkuohaocate,
+                                                        "device"
+                                                    )?.get(0)?.let { it2 ->
+                                                        SpinnerV(
+                                                            it2.toString(), dropDownWidth = 200F
+                                                        ) {
+                                                            add("cpu0") {}
+                                                            add("cpu4") {}
+                                                            add("cpu7") {}
+                                                            add("VIRTUAL-SENSOR0") {}
+                                                            add("thermal_fcc_override") {}
+                                                            add("battery") {}
+                                                            add("temp_state") {}
+                                                            add("hotplug_cpu2+hotplug_cpu3+hotplug_cpu7") {}
+                                                            add("boost_limit") {}
+                                                            add("cpu4+cpu7+hotplug_cpu2+hotplug_cpu3") {}
+                                                            add("gpu") {}
+                                                            add("blacklight-clone") {}
+                                                            add("modem_limit") {}
+                                                            add("market_download_limit") {}
+                                                            add("lmh_cpu4") {}
+                                                            add("lmh_cpu7") {}
+                                                            add("modem_pa_nr") {}
+                                                            add("modem_pa_lte") {}
+                                                        }.let { it3 ->
+                                                            TextWithSpinner(
+                                                                TextV("device"),
+                                                                it3
+                                                            )
+                                                        }
+                                                    }
+                                                    Utils.getValue(
+                                                        content,
+                                                        withoutzhongkuohaocate,
+                                                        "polling"
+                                                    )?.get(0)?.let { it2 ->
+                                                        SpinnerV(
+                                                            it2.toString()
+                                                        ) {
+                                                            add("10000") {}
+                                                            add("1000") {}
+                                                            add("2000") {}
+                                                        }.let { it3 ->
+                                                            TextWithSpinner(
+                                                                TextV("polling"),
+                                                                it3
+                                                            )
+                                                        }
+                                                    }
+                                                    Line()
+                                                    val trig = Utils.getValue(content, withoutzhongkuohaocate, "trig")
+//                                                    var trig1 = ""
+                                                    val trig1 = if (trig != null && trig.size == 1) {
+                                                        trig[0]
+                                                    } else {
+                                                        trig.toString()
+                                                    }
+                                                    TextWithSpinner(TextV("trig"), SpinnerV(trig1) {
+                                                    })
+//                                                    Text { }
+                                                    val clr = Utils.getValue(content, withoutzhongkuohaocate, "clr")
+//                                                    var clr1 = ""
+                                                    val clr1 = if (clr != null && clr.size == 1) {
+                                                        clr[0]
+                                                    } else {
+                                                        clr.toString()
+                                                    }
+                                                    TextWithSpinner(TextV("clr"), SpinnerV(clr1) {
+                                                    })
+//                                                    Text { }
+                                                    val target = Utils.getValue(content, withoutzhongkuohaocate, "target")
+//                                                    var target1 = ""
+                                                    val target1 = if (target != null && target.size == 1) {
+                                                        target[0]
+                                                    } else {
+                                                        target.toString()
+                                                    }
+                                                    TextWithSpinner(TextV("target"), SpinnerV(target1) {
+                                                    })
+
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                //
+                            }
                             showFragment("expert_mode")
+                        })
+                )
+                TextSummaryArrow(
+                    TextSummaryV(
+                        getString(R.string.explore_thermal_data), //data专业
+                        tips = getString(R.string.explore_thermal_data_tips),
+                        onClickListener = {
+                            ShellUtils.execCommand("cp /data/vendor/thermal/config/* "+cacheDir+"/data", true)
+                            var dirsrc = cacheDir.path+"/data/"
+                            var dir = File(dirsrc)
+                            var files: Array<out String>? = dir.list()
+                            register("data_expert_mode", getString(R.string.explore_thermal_data), false) {
+                                async = object : AsyncInit {
+                                    override val skipLoadItem: Boolean = true
+                                    override fun onInit(fragment: MIUIFragment) {
+                                        fragment.showLoading()
+                                        Thread.sleep(100)
+//                                        fragment.addItem(TextV("Test"))
+                                        fragment.closeLoading()
+//                        showToast(getString(R.string.got_file))
+                                        fragment.initData()
+                                    }
+                                }
+                                val thermalfiles = Utils.getFileLists(files)
+                                for (thermalfile in thermalfiles) {
+                                    val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
+                                    if (Utils.showThermalTips(thermalnametips) != "不要动") {
+                                        TextSummaryArrow(
+                                            TextSummaryV(
+                                                thermalfile,
+                                                tips = Utils.showThermalTips(thermalnametips),
+                                                onClickListener = {
+                                                    showFragment("Viewdata$thermalfile")
+                                                })
+                                        )
+                                        val file = File(cacheDir.path + "/data", thermalfile)
+                                        val output = FileOutputStream(file.absolutePath)
+                                        val input = FileInputStream(dirsrc + thermalfile)
+                                        AESCode.decrypt(input, output)
+                                        input.close()
+                                        output.close()
+                                    }
+                                }
+                                //
+                                for (thermalfile in thermalfiles) {
+                                    //4k 8k normal ...
+                                    val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
+                                    if (Utils.showThermalTips(thermalnametips) != "不要动") {
+                                        val file = File(cacheDir.path + "/data", thermalfile)
+                                        val content = file.readText()
+                                        val pattern = Regex("\\[(.*?)]") //不能听idea提示的去掉"\\"
+                                        register("Viewdata$thermalfile", thermalfile, false) {
+                                            pattern.findAll(content).forEach {
+                                                //SS-CPU0 MONITOR-BAT...
+                                                val withoutzhongkuohaocate = it.value.replace(pattern, "$1")
+                                                val item = it.value.replace(pattern, "$1")
+                                                    .replace(thermalnametips.uppercase() + "-", "")
+                                                //                            val iteml = "$thermalnametips/$item"
+                                                TextSummaryArrow(
+                                                    TextSummaryV(
+                                                        item,
+                                                        //                                    tips = showThermalTips(thermalnametips),
+                                                        tips = Utils.showConfTips(item),
+                                                        onClickListener = {
+                                                            showFragment("data$thermalnametips/$item")
+                                                        })
+                                                )
+                                                //最后显示页面
+                                                register("data$thermalnametips/$item", "$thermalnametips/$item", false) {
+                                                    Utils.getValue(
+                                                        content,
+                                                        withoutzhongkuohaocate,
+                                                        "algo_type"
+                                                    )?.get(0)?.let { it2 ->
+                                                        SpinnerV(
+                                                            it2.toString(), dropDownWidth = 170F
+                                                        ) {
+                                                            add("ss") {}
+                                                            add("monitor") {}
+                                                            add("sic") {}
+                                                            add("simulated") {}
+                                                        }.let { it3 ->
+                                                            TextWithSpinner(
+                                                                TextV("algo_type"),
+                                                                it3
+                                                            )
+                                                        }
+                                                    }
+                                                    Utils.getValue(
+                                                        content,
+                                                        withoutzhongkuohaocate,
+                                                        "sensor"
+                                                    )?.get(0)?.let { it2 ->
+                                                        SpinnerV(
+                                                            it2.toString(), dropDownWidth = 200F
+                                                        ) {
+                                                            add("VIRTUAL-SENSOR0") {}
+                                                            add("battery") {}
+                                                            add("flash_therm") {}
+                                                            add("quiet_therm") {}
+                                                            add("wifi_therm") {}
+                                                            add("cpu_therm") {}
+                                                            add("charger_therm0") {}
+                                                            add("pa_therm0") {}
+                                                            add("pa_therm1") {}
+                                                        }.let { it3 ->
+                                                            TextWithSpinner(
+                                                                TextV("sensor"),
+                                                                it3
+                                                            )
+                                                        }
+                                                    }
+                                                    Utils.getValue(
+                                                        content,
+                                                        withoutzhongkuohaocate,
+                                                        "device"
+                                                    )?.get(0)?.let { it2 ->
+                                                        SpinnerV(
+                                                            it2.toString(), dropDownWidth = 200F
+                                                        ) {
+                                                            add("cpu0") {}
+                                                            add("cpu4") {}
+                                                            add("cpu7") {}
+                                                            add("VIRTUAL-SENSOR0") {}
+                                                            add("thermal_fcc_override") {}
+                                                            add("battery") {}
+                                                            add("temp_state") {}
+                                                            add("hotplug_cpu2+hotplug_cpu3+hotplug_cpu7") {}
+                                                            add("boost_limit") {}
+                                                            add("cpu4+cpu7+hotplug_cpu2+hotplug_cpu3") {}
+                                                            add("gpu") {}
+                                                            add("blacklight-clone") {}
+                                                            add("modem_limit") {}
+                                                            add("market_download_limit") {}
+                                                            add("lmh_cpu4") {}
+                                                            add("lmh_cpu7") {}
+                                                            add("modem_pa_nr") {}
+                                                            add("modem_pa_lte") {}
+                                                        }.let { it3 ->
+                                                            TextWithSpinner(
+                                                                TextV("device"),
+                                                                it3
+                                                            )
+                                                        }
+                                                    }
+                                                    Utils.getValue(
+                                                        content,
+                                                        withoutzhongkuohaocate,
+                                                        "polling"
+                                                    )?.get(0)?.let { it2 ->
+                                                        SpinnerV(
+                                                            it2.toString()
+                                                        ) {
+                                                            add("10000") {}
+                                                            add("1000") {}
+                                                            add("2000") {}
+                                                        }.let { it3 ->
+                                                            TextWithSpinner(
+                                                                TextV("polling"),
+                                                                it3
+                                                            )
+                                                        }
+                                                    }
+                                                    Line()
+                                                    val trig = Utils.getValue(content, withoutzhongkuohaocate, "trig")
+//                                                    var trig1 = ""
+                                                    val trig1 = if (trig != null && trig.size == 1) {
+                                                        trig[0]
+                                                    } else {
+                                                        trig.toString()
+                                                    }
+                                                    TextWithSpinner(TextV("trig"), SpinnerV(trig1) {
+                                                    })
+//                                                    Text { }
+                                                    val clr = Utils.getValue(content, withoutzhongkuohaocate, "clr")
+//                                                    var clr1 = ""
+                                                    val clr1 = if (clr != null && clr.size == 1) {
+                                                        clr[0]
+                                                    } else {
+                                                        clr.toString()
+                                                    }
+                                                    TextWithSpinner(TextV("clr"), SpinnerV(clr1) {
+                                                    })
+//                                                    Text { }
+                                                    val target = Utils.getValue(content, withoutzhongkuohaocate, "target")
+//                                                    var target1 = ""
+                                                    val target1 = if (target != null && target.size == 1) {
+                                                        target[0]
+                                                    } else {
+                                                        target.toString()
+                                                    }
+                                                    TextWithSpinner(TextV("target"), SpinnerV(target1) {
+                                                    })
+
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                //
+                            }
+                            showFragment("data_expert_mode")
                         })
                 )
                 Line()
@@ -107,8 +514,9 @@ class MainActivity : MIUIActivity() {
                         getString(R.string.expert_mode), //专业
                         tips = getString(R.string.expert_mode_tips),
                         onClickListener = {
+                            iswriteable = 1;
 //                            showToast(getString(R.string.getting_thermal_file))
-                            showFragment("expert_mode")
+//                            showFragment("expert_mode")
                         })
                 )
                 Line()
@@ -118,7 +526,7 @@ class MainActivity : MIUIActivity() {
                         getString(R.string.super_charge), //快充
                         tips = getString(R.string.super_charge_tips),
                         onClickListener = {
-                            showFragment("super_charge")
+//                            showFragment("super_charge")
                         })
                 )
                 Line()
@@ -165,13 +573,13 @@ class MainActivity : MIUIActivity() {
                                     dismiss()
                                 }
                                 setRButton(R.string.confirm) {
-                                    thermalfiles = Utils.getFileLists(files)
-                                    for (thermalfile in thermalfiles) {
+                                    val vendorthermalfiles = Utils.getFileLists(vendorfiles)
+                                    for (thermalfile in vendorthermalfiles) {
                                         val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
                                         if (Utils.showThermalTips(thermalnametips) != "不要动") {
                                             val file = File(filesDir.path + "/origin", thermalfile)
                                             val output = FileOutputStream(file.absolutePath)
-                                            val input = FileInputStream(dirsrc + thermalfile)
+                                            val input = FileInputStream(vendordirsrc + thermalfile)
 //                                            AESCode.decrypt(input, output)
                                             val buffer = ByteArray(1024)
                                             var length = input.read(buffer)
@@ -273,195 +681,196 @@ class MainActivity : MIUIActivity() {
             register("batch_mode", getString(R.string.batch_mode), false) {
 
             }
-            register("expert_mode", getString(R.string.expert_mode), false) {
-                async = object : AsyncInit {
-                    override val skipLoadItem: Boolean = true
-                    override fun onInit(fragment: MIUIFragment) {
-                        fragment.showLoading()
-                        Thread.sleep(100)
-//                                        fragment.addItem(TextV("Test"))
-                        fragment.closeLoading()
-//                        showToast(getString(R.string.got_file))
-                        fragment.initData()
-                    }
-                }
-                thermalfiles = Utils.getFileLists(files)
-                for (thermalfile in thermalfiles) {
-                    val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
-                    if (Utils.showThermalTips(thermalnametips) != "不要动") {
-                        TextSummaryArrow(
-                            TextSummaryV(
-                                thermalfile,
-                                tips = Utils.showThermalTips(thermalnametips),
-                                onClickListener = {
-                                    showFragment("Edit$thermalfile")
-                                })
-                        )
-                        val file = File(cacheDir.path + "/origin", thermalfile)
-                        val output = FileOutputStream(file.absolutePath)
-                        val input = FileInputStream(dirsrc + thermalfile)
-                        AESCode.decrypt(input, output)
-                        input.close()
-                        output.close()
-                    }
-                }
-                //
-                for (thermalfile in thermalfiles) {
-                    //4k 8k normal ...
-                    val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
-                    if (Utils.showThermalTips(thermalnametips) != "不要动") {
-                        val file = File(cacheDir.path + "/origin", thermalfile)
-                        val content = file.readText()
-                        val pattern = Regex("\\[(.*?)]") //不能听idea提示的去掉"\\"
-                        register("Edit$thermalfile", thermalfile, false) {
-                            pattern.findAll(content).forEach {
-                                //SS-CPU0 MONITOR-BAT...
-                                val withoutzhongkuohaocate = it.value.replace(pattern, "$1")
-                                val item = it.value.replace(pattern, "$1")
-                                    .replace(thermalnametips.uppercase() + "-", "")
-                                //                            val iteml = "$thermalnametips/$item"
-                                TextSummaryArrow(
-                                    TextSummaryV(
-                                        item,
-                                        //                                    tips = showThermalTips(thermalnametips),
-                                        onClickListener = {
-                                            showFragment("$thermalnametips/$item")
-                                        })
-                                )
-                                //最后显示页面
-                                register("$thermalnametips/$item", "$thermalnametips/$item", false) {
-                                    Utils.getValue(
-                                        content,
-                                        withoutzhongkuohaocate,
-                                        "algo_type"
-                                    )?.get(0)?.let { it2 ->
-                                        SpinnerV(
-                                            it2.toString(), dropDownWidth = 170F
-                                        ) {
-                                            add("ss") {}
-                                            add("monitor") {}
-                                            add("sic") {}
-                                            add("simulated") {}
-                                        }.let { it3 ->
-                                            TextWithSpinner(
-                                                TextV("algo_type"),
-                                                it3
-                                            )
-                                        }
-                                    }
-                                    Utils.getValue(
-                                        content,
-                                        withoutzhongkuohaocate,
-                                        "sensor"
-                                    )?.get(0)?.let { it2 ->
-                                        SpinnerV(
-                                            it2.toString(), dropDownWidth = 200F
-                                        ) {
-                                            add("VIRTUAL-SENSOR0") {}
-                                            add("battery") {}
-                                            add("flash_therm") {}
-                                            add("quiet_therm") {}
-                                            add("wifi_therm") {}
-                                            add("cpu_therm") {}
-                                            add("charger_therm0") {}
-                                            add("pa_therm0") {}
-                                            add("pa_therm1") {}
-                                        }.let { it3 ->
-                                            TextWithSpinner(
-                                                TextV("sensor"),
-                                                it3
-                                            )
-                                        }
-                                    }
-                                    Utils.getValue(
-                                        content,
-                                        withoutzhongkuohaocate,
-                                        "device"
-                                    )?.get(0)?.let { it2 ->
-                                        SpinnerV(
-                                            it2.toString(), dropDownWidth = 200F
-                                        ) {
-                                            add("cpu0") {}
-                                            add("cpu4") {}
-                                            add("cpu7") {}
-                                            add("VIRTUAL-SENSOR0") {}
-                                            add("thermal_fcc_override") {}
-                                            add("battery") {}
-                                            add("temp_state") {}
-                                            add("hotplug_cpu2+hotplug_cpu3+hotplug_cpu7") {}
-                                            add("boost_limit") {}
-                                            add("cpu4+cpu7+hotplug_cpu2+hotplug_cpu3") {}
-                                            add("gpu") {}
-                                            add("blacklight-clone") {}
-                                            add("modem_limit") {}
-                                            add("market_download_limit") {}
-                                            add("lmh_cpu4") {}
-                                            add("lmh_cpu7") {}
-                                            add("modem_pa_nr") {}
-                                            add("modem_pa_lte") {}
-                                        }.let { it3 ->
-                                            TextWithSpinner(
-                                                TextV("device"),
-                                                it3
-                                            )
-                                        }
-                                    }
-                                    Utils.getValue(
-                                        content,
-                                        withoutzhongkuohaocate,
-                                        "polling"
-                                    )?.get(0)?.let { it2 ->
-                                        SpinnerV(
-                                            it2.toString()
-                                        ) {
-                                            add("10000") {}
-                                            add("1000") {}
-                                            add("2000") {}
-                                        }.let { it3 ->
-                                            TextWithSpinner(
-                                                TextV("polling"),
-                                                it3
-                                            )
-                                        }
-                                    }
-                                    Line()
-                                    val trig = Utils.getValue(content, withoutzhongkuohaocate, "trig")
-//                                                    var trig1 = ""
-                                    val trig1 = if (trig != null && trig.size == 1) {
-                                        trig[0]
-                                    } else {
-                                        trig.toString()
-                                    }
-                                    TextWithSpinner(TextV("trig"), SpinnerV(trig1) {
-                                    })
-//                                                    Text { }
-                                    val clr = Utils.getValue(content, withoutzhongkuohaocate, "clr")
-//                                                    var clr1 = ""
-                                    val clr1 = if (clr != null && clr.size == 1) {
-                                        clr[0]
-                                    } else {
-                                        clr.toString()
-                                    }
-                                    TextWithSpinner(TextV("clr"), SpinnerV(clr1) {
-                                    })
-//                                                    Text { }
-                                    val target = Utils.getValue(content, withoutzhongkuohaocate, "target")
-//                                                    var target1 = ""
-                                    val target1 = if (target != null && target.size == 1) {
-                                        target[0]
-                                    } else {
-                                        target.toString()
-                                    }
-                                    TextWithSpinner(TextV("target"), SpinnerV(target1) {
-                                    })
-
-                                }
-                            }
-                        }
-                    }
-                }
-                //
-            }
+//            register("expert_mode", getString(R.string.expert_mode), false) {
+//                async = object : AsyncInit {
+//                    override val skipLoadItem: Boolean = true
+//                    override fun onInit(fragment: MIUIFragment) {
+//                        fragment.showLoading()
+//                        Thread.sleep(100)
+////                                        fragment.addItem(TextV("Test"))
+//                        fragment.closeLoading()
+////                        showToast(getString(R.string.got_file))
+//                        fragment.initData()
+//                    }
+//                }
+//                val thermalfiles = Utils.getFileLists(files)
+//                for (thermalfile in thermalfiles) {
+//                    val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
+//                    if (Utils.showThermalTips(thermalnametips) != "不要动") {
+//                        TextSummaryArrow(
+//                            TextSummaryV(
+//                                thermalfile,
+//                                tips = Utils.showThermalTips(thermalnametips),
+//                                onClickListener = {
+//                                    showFragment("Edit$thermalfile")
+//                                })
+//                        )
+//                        val file = File(cacheDir.path + "/origin", thermalfile)
+//                        val output = FileOutputStream(file.absolutePath)
+//                        val input = FileInputStream(dirsrc + thermalfile)
+//                        AESCode.decrypt(input, output)
+//                        input.close()
+//                        output.close()
+//                    }
+//                }
+//                //
+//                for (thermalfile in thermalfiles) {
+//                    //4k 8k normal ...
+//                    val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
+//                    if (Utils.showThermalTips(thermalnametips) != "不要动") {
+//                        val file = File(cacheDir.path + "/origin", thermalfile)
+//                        val content = file.readText()
+//                        val pattern = Regex("\\[(.*?)]") //不能听idea提示的去掉"\\"
+//                        register("Edit$thermalfile", thermalfile, false) {
+//                            pattern.findAll(content).forEach {
+//                                //SS-CPU0 MONITOR-BAT...
+//                                val withoutzhongkuohaocate = it.value.replace(pattern, "$1")
+//                                val item = it.value.replace(pattern, "$1")
+//                                    .replace(thermalnametips.uppercase() + "-", "")
+//                                //                            val iteml = "$thermalnametips/$item"
+//                                TextSummaryArrow(
+//                                    TextSummaryV(
+//                                        item,
+//                                        //                                    tips = showThermalTips(thermalnametips),
+//                                        tips = Utils.showConfTips(item),
+//                                        onClickListener = {
+//                                            showFragment("$thermalnametips/$item")
+//                                        })
+//                                )
+//                                //最后显示页面
+//                                register("$thermalnametips/$item", "$thermalnametips/$item", false) {
+//                                    Utils.getValue(
+//                                        content,
+//                                        withoutzhongkuohaocate,
+//                                        "algo_type"
+//                                    )?.get(0)?.let { it2 ->
+//                                        SpinnerV(
+//                                            it2.toString(), dropDownWidth = 170F
+//                                        ) {
+//                                            add("ss") {}
+//                                            add("monitor") {}
+//                                            add("sic") {}
+//                                            add("simulated") {}
+//                                        }.let { it3 ->
+//                                            TextWithSpinner(
+//                                                TextV("algo_type"),
+//                                                it3
+//                                            )
+//                                        }
+//                                    }
+//                                    Utils.getValue(
+//                                        content,
+//                                        withoutzhongkuohaocate,
+//                                        "sensor"
+//                                    )?.get(0)?.let { it2 ->
+//                                        SpinnerV(
+//                                            it2.toString(), dropDownWidth = 200F
+//                                        ) {
+//                                            add("VIRTUAL-SENSOR0") {}
+//                                            add("battery") {}
+//                                            add("flash_therm") {}
+//                                            add("quiet_therm") {}
+//                                            add("wifi_therm") {}
+//                                            add("cpu_therm") {}
+//                                            add("charger_therm0") {}
+//                                            add("pa_therm0") {}
+//                                            add("pa_therm1") {}
+//                                        }.let { it3 ->
+//                                            TextWithSpinner(
+//                                                TextV("sensor"),
+//                                                it3
+//                                            )
+//                                        }
+//                                    }
+//                                    Utils.getValue(
+//                                        content,
+//                                        withoutzhongkuohaocate,
+//                                        "device"
+//                                    )?.get(0)?.let { it2 ->
+//                                        SpinnerV(
+//                                            it2.toString(), dropDownWidth = 200F
+//                                        ) {
+//                                            add("cpu0") {}
+//                                            add("cpu4") {}
+//                                            add("cpu7") {}
+//                                            add("VIRTUAL-SENSOR0") {}
+//                                            add("thermal_fcc_override") {}
+//                                            add("battery") {}
+//                                            add("temp_state") {}
+//                                            add("hotplug_cpu2+hotplug_cpu3+hotplug_cpu7") {}
+//                                            add("boost_limit") {}
+//                                            add("cpu4+cpu7+hotplug_cpu2+hotplug_cpu3") {}
+//                                            add("gpu") {}
+//                                            add("blacklight-clone") {}
+//                                            add("modem_limit") {}
+//                                            add("market_download_limit") {}
+//                                            add("lmh_cpu4") {}
+//                                            add("lmh_cpu7") {}
+//                                            add("modem_pa_nr") {}
+//                                            add("modem_pa_lte") {}
+//                                        }.let { it3 ->
+//                                            TextWithSpinner(
+//                                                TextV("device"),
+//                                                it3
+//                                            )
+//                                        }
+//                                    }
+//                                    Utils.getValue(
+//                                        content,
+//                                        withoutzhongkuohaocate,
+//                                        "polling"
+//                                    )?.get(0)?.let { it2 ->
+//                                        SpinnerV(
+//                                            it2.toString()
+//                                        ) {
+//                                            add("10000") {}
+//                                            add("1000") {}
+//                                            add("2000") {}
+//                                        }.let { it3 ->
+//                                            TextWithSpinner(
+//                                                TextV("polling"),
+//                                                it3
+//                                            )
+//                                        }
+//                                    }
+//                                    Line()
+//                                    val trig = Utils.getValue(content, withoutzhongkuohaocate, "trig")
+////                                                    var trig1 = ""
+//                                    val trig1 = if (trig != null && trig.size == 1) {
+//                                        trig[0]
+//                                    } else {
+//                                        trig.toString()
+//                                    }
+//                                    TextWithSpinner(TextV("trig"), SpinnerV(trig1) {
+//                                    })
+////                                                    Text { }
+//                                    val clr = Utils.getValue(content, withoutzhongkuohaocate, "clr")
+////                                                    var clr1 = ""
+//                                    val clr1 = if (clr != null && clr.size == 1) {
+//                                        clr[0]
+//                                    } else {
+//                                        clr.toString()
+//                                    }
+//                                    TextWithSpinner(TextV("clr"), SpinnerV(clr1) {
+//                                    })
+////                                                    Text { }
+//                                    val target = Utils.getValue(content, withoutzhongkuohaocate, "target")
+////                                                    var target1 = ""
+//                                    val target1 = if (target != null && target.size == 1) {
+//                                        target[0]
+//                                    } else {
+//                                        target.toString()
+//                                    }
+//                                    TextWithSpinner(TextV("target"), SpinnerV(target1) {
+//                                    })
+//
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                //
+//            }
 
             register("super_charge", getString(R.string.super_charge), false) {
 
@@ -546,6 +955,23 @@ class MainActivity : MIUIActivity() {
                             startActivity(intent)
                         }
                     })
+                TextSummaryArrow(
+                    TextSummaryV(
+                        textId = R.string.QQqun,
+                        tips = getString(R.string.QQqunum),
+                        onClickListener = {
+                            try {
+                                val intent = Intent()
+                                intent.setData(Uri.parse("mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26jump_from%3Dwebapi%26k%3D" + key))
+                                // 此Flag可根据具体产品需要自定义，如设置，则在加群界面按返回，返回手Q主界面，不设置，按返回会返回到呼起产品界面    //intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                // 此Flag可根据具体产品需要自定义，如设置，则在加群界面按返回，返回手Q主界面，不设置，按返回会返回到呼起产品界面    //intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(intent)
+
+                            } catch (e: Exception) {
+                                Toast.makeText(activity, "访问失败", Toast.LENGTH_SHORT).show()
+                            }
+                        })
+                )
                 TitleText(text = getString(R.string.thank_list))
                 TextSummaryArrow(
                     TextSummaryV(

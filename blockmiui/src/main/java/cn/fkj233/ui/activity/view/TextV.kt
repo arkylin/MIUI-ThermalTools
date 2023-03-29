@@ -35,11 +35,18 @@ import cn.fkj233.miui.R
 import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.data.Padding
 import cn.fkj233.ui.activity.dp2px
+import cn.fkj233.ui.activity.fragment.MIUIFragment
 import cn.fkj233.ui.activity.isRtl
 
-class TextV(val text: String? = null, private val textId: Int? = null, val textSize: Float? = null, private val colorInt: Int? = null, private val colorId: Int? = null, private val padding: Padding? = null, private val dataBindingRecv: DataBinding.Binding.Recv? = null, private val typeface: Typeface? = null, val onClickListener: (() -> Unit)? = null): BaseView() {
+class TextV(val text: String? = null, private val textId: Int? = null, val textSize: Float? = null, private val colorInt: Int? = null, private val colorId: Int? = null, private val padding: Padding? = null, private val dataBindingRecv: DataBinding.Binding.Recv? = null, private val typeface: Typeface? = null, val onClickListener: (() -> Unit)? = null): BaseView {
+
+    private var notShowMargins = false
 
     override fun getType(): BaseView = this
+
+    fun notShowMargins(boolean: Boolean) {
+        notShowMargins = boolean
+    }
 
     override fun create(context: Context, callBacks: (() -> Unit)?): View {
         return TextView(context).also { view ->
@@ -69,10 +76,10 @@ class TextV(val text: String? = null, private val textId: Int? = null, val textS
                     view.paint.typeface = Typeface.defaultFromStyle(Typeface.BOLD)
                 }
             }
-            if (isRtl(context))
-                view.setPadding(dp2px(context, 5f), dp2px(context, 20f), 0, dp2px(context, 20f))
-            else
-                view.setPadding(0, dp2px(context, 20f), dp2px(context, 5f), dp2px(context, 20f))
+            if (!notShowMargins) {
+                if (isRtl(context)) view.setPadding(dp2px(context, 5f), dp2px(context, 20f), 0, dp2px(context, 20f))
+                else view.setPadding(0, dp2px(context, 20f), dp2px(context, 5f), dp2px(context, 20f))
+            }
             padding?.let {
                 if (isRtl(context))
                     view.setPadding(it.right, it.top, it.left, it.bottom)
@@ -80,6 +87,20 @@ class TextV(val text: String? = null, private val textId: Int? = null, val textS
                     view.setPadding(it.left, it.top, it.right, it.bottom)
             }
             dataBindingRecv?.setView(view)
+        }
+    }
+
+    override fun onDraw(thiz: MIUIFragment, group: LinearLayout, view: View) {
+        thiz.apply {
+            group.apply {
+                addView(view)
+                onClickListener?.let { unit ->
+                    setOnClickListener {
+                        unit()
+                        callBacks?.let { it1 -> it1() }
+                    }
+                }
+            }
         }
     }
 }

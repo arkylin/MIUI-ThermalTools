@@ -36,8 +36,9 @@ import cn.fkj233.ui.activity.MIUIActivity
 import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.data.LayoutPair
 import cn.fkj233.ui.activity.dp2px
+import cn.fkj233.ui.activity.fragment.MIUIFragment
 
-class SeekBarWithTextV(val key: String = "", private val min: Int, private val max: Int, private val defaultProgress: Int = 0, private val dataBindingRecv: DataBinding.Binding.Recv? = null, private val dataBindingSend: DataBinding.Binding.Send? = null, val callBacks: ((Int, TextView) -> Unit)? = null): BaseView() {
+class SeekBarWithTextV(val key: String = "", private val min: Int, private val max: Int, private val defaultProgress: Int = 0, private val dataBindingRecv: DataBinding.Binding.Recv? = null, private val dataBindingSend: DataBinding.Binding.Send? = null, val callBacks: ((Int, TextView) -> Unit)? = null): BaseView {
 
     override fun getType(): BaseView = this
 
@@ -87,13 +88,21 @@ class SeekBarWithTextV(val key: String = "", private val min: Int, private val m
                 LayoutPair(LinearContainerV(
                     LinearContainerV.HORIZONTAL,
                     arrayOf(
-                        LayoutPair(minText.also { it.setPadding(0,  dp2px(context, 8f), 0, dp2px(context, 17.75f)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)),
-                        LayoutPair(mutableText.also { it.textAlignment = TextView.TEXT_ALIGNMENT_CENTER; it.setPadding(0,  dp2px(context, 8f), 0, dp2px(context, 17.75f)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)),
-                        LayoutPair(maxText.also { it.textAlignment = TextView.TEXT_ALIGNMENT_VIEW_END; it.setPadding(0,  dp2px(context, 8f), 0, dp2px(context, 17.75f)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)))).create(context, callBacks).also { it.setPadding(0, 0, 0, 0) },
+                        LayoutPair(minText.also { it.setPadding(0,  dp2px(context, 5f), 0, dp2px(context, 17.75f)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)),
+                        LayoutPair(mutableText.also { it.textAlignment = TextView.TEXT_ALIGNMENT_CENTER; it.setPadding(0,  dp2px(context, 5f), 0, dp2px(context, 17.75f)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)),
+                        LayoutPair(maxText.also { it.textAlignment = TextView.TEXT_ALIGNMENT_VIEW_END; it.setPadding(0,  dp2px(context, 5f), 0, dp2px(context, 17.75f)) }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)))).create(context, callBacks).also { it.setPadding(0, 0, 0, 0) },
                     LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             )
         ).create(context, callBacks).also {
             dataBindingRecv?.setView(it)
+        }
+    }
+
+    override fun onDraw(thiz: MIUIFragment, group: LinearLayout, view: View) {
+        thiz.apply {
+            group.apply {
+                addView(view, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            }
         }
     }
 }

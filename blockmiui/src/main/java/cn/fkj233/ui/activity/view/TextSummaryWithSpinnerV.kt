@@ -22,15 +22,18 @@
 
 package cn.fkj233.ui.activity.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
 import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.data.LayoutPair
 import cn.fkj233.ui.activity.dp2px
+import cn.fkj233.ui.activity.fragment.MIUIFragment
 
-class TextSummaryWithSpinnerV(private val textV: TextSummaryV, val spinnerV: SpinnerV, private val dataBindingRecv: DataBinding.Binding.Recv? = null): BaseView() {
+class TextSummaryWithSpinnerV(private val textSummaryV: TextSummaryV, private val spinnerV: SpinnerV, private val dataBindingRecv: DataBinding.Binding.Recv? = null): BaseView {
 
     override fun getType(): BaseView = this
 
@@ -38,7 +41,7 @@ class TextSummaryWithSpinnerV(private val textV: TextSummaryV, val spinnerV: Spi
         return LinearContainerV(
             LinearContainerV.HORIZONTAL,
             arrayOf(
-                LayoutPair(textV.create(context, callBacks), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)),
+                LayoutPair(textSummaryV.create(context, callBacks), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)),
                 LayoutPair(spinnerV.create(context, callBacks), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_VERTICAL })
             ),
             descendantFocusability = LinearContainerV.FOCUS_BLOCK_DESCENDANTS,
@@ -47,6 +50,39 @@ class TextSummaryWithSpinnerV(private val textV: TextSummaryV, val spinnerV: Spi
             }
         ).create(context, callBacks).also {
             dataBindingRecv?.setView(it)
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onDraw(thiz: MIUIFragment, group: LinearLayout, view: View) {
+        thiz.apply {
+            group.apply {
+                addView(view)
+                setOnClickListener {}
+                setOnTouchListener { view, motionEvent ->
+                    if (motionEvent.action == MotionEvent.ACTION_UP) {
+                        val popup = MIUIPopup(context, view, spinnerV.currentValue, spinnerV.dropDownWidth, {
+                            spinnerV.select.text = it
+                            spinnerV.currentValue = it
+                            callBacks?.let { it1 -> it1() }
+                            spinnerV.dataBindingSend?.send(it)
+                        }, SpinnerV.SpinnerData().apply(spinnerV.data).arrayList)
+                        if (view.width / 2 >= motionEvent.x) {
+                            popup.apply {
+                                horizontalOffset = dp2px(context, 24F)
+                                setDropDownGravity(Gravity.LEFT)
+                            }
+                        } else {
+                            popup.apply {
+                                horizontalOffset = -dp2px(context, 24F)
+                                setDropDownGravity(Gravity.RIGHT)
+                            }
+                        }
+                        popup.show()
+                    }
+                    false
+                }
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.thermal.tools
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.res.AssetManager
 import cn.fkj233.ui.dialog.MIUIDialog
@@ -42,6 +43,40 @@ object Utils {
         return a
     }
 
+    fun showConfTips(string: String): String {
+        var a = "不要动"
+        when (string) {
+            "SS-CPU0" -> a = "0号CPU"
+            "SS-CPU4" -> a = "4号CPU"
+            "SS-CPU7" -> a = "7号CPU"
+            "MONITIOR-SENSOR0" -> a = "传感器"
+            "SIC-BAT" -> a = "电池"
+            "MONITOR-BAT" -> a = "电池监控"
+            "MONITOR-FLASH" -> a = "FLASH温度"
+            "MONITOR-CCC" -> a = "CCC温度"
+            "MONITOR-BOOST_LIMIT" -> a = "性能模式下运行miHoYo游戏"
+            "MONITOR-BCL" -> a = "性能模式-日常"
+            "MONITOR-GPU" -> a = "GPU温度"
+            "MONITOR-BACKLIGHT" -> a = "背光亮度"
+            "" -> a = "不要动"
+            "mgame" -> a = "运行miHoYo游戏"
+            "navigation" -> a = "运行导航App"
+            "nolimits" -> a = "跑分软件，例如：安兔兔"
+            "normal" -> a = "日常"
+            "per-class0" -> a = "性能模式下，特殊应用分组，例如：QQ"
+            "per-navigation" -> a = "不清楚"
+            "per-normal" -> a = "性能模式-日常"
+            "per-video" -> a = "性能模式下播放视频"
+            "phone" -> a = "通话，包括QQ、微信"
+            "region-map" -> a = "不要动"
+            "tgame" -> a = "腾讯游戏"
+            "video" -> a = "播放视频"
+            "videochat" -> a = "视频通话"
+            "yuanshen" -> a = "原神游戏中开启性能模式"
+        }
+        return a
+    }
+
 //    fun getParameter(text: String, section: String, parameter: String): String? {
 //        val lines = text.split("\n")
 //        var currentSection = ""
@@ -58,6 +93,7 @@ object Utils {
 //        return null
 //    }
 
+    @SuppressLint("SuspiciousIndentation")
     fun getValue(text: String, section: String, parameter: String): List<String>? {
 //        val lines = text.lines()
         val lines = text.split("\n")

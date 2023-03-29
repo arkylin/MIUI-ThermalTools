@@ -4,15 +4,10 @@ plugins {
 }
 
 android {
+    compileSdk = 33
 
-    signingConfigs {
-        create("release") {
-        }
-    }
-    compileSdk = 31
     defaultConfig {
         minSdk = 26
-        targetSdk = 31
     }
 
     buildTypes {
@@ -20,14 +15,9 @@ android {
             isMinifyEnabled = false
             setProguardFiles(
                 listOf(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro"
+                    getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
                 )
             )
-            signingConfig = signingConfigs.getByName("release")
-        }
-        getByName("debug") {
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -37,9 +27,8 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.majorVersion
     }
-    namespace = "cn.fkj233.miui"
 }
 
 dependencies {
-    implementation("androidx.annotation:annotation:1.3.0")
+    implementation("androidx.annotation:annotation:1.6.0")
 }

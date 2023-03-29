@@ -47,7 +47,7 @@ import cn.fkj233.ui.activity.isRtl
  * @param dataBindingRecv Data binding recv / 数据绑定接收
  * @param data Spinner data / 下拉框数据
  */
-class SpinnerV(var currentValue: String, val dropDownWidth: Float = 150F, val dataBindingSend: DataBinding.Binding.Send? = null, private val dataBindingRecv: DataBinding.Binding.Recv? = null, val data: SpinnerData.() -> Unit): BaseView() {
+class SpinnerV(var currentValue: String, val dropDownWidth: Float = 150F, val dataBindingSend: DataBinding.Binding.Send? = null, private val dataBindingRecv: DataBinding.Binding.Recv? = null, val data: SpinnerData.() -> Unit): BaseView {
 
     class SpinnerData {
         val arrayList: ArrayList<MIUIPopupData> = arrayListOf()

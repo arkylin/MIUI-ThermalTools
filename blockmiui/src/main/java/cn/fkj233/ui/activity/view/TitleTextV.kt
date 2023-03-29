@@ -35,12 +35,7 @@ import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.dp2px
 import cn.fkj233.ui.activity.isRtl
 
-class TitleTextV(
-    val text: String? = null,
-    private val textId: Int? = null,
-    private val dataBindingRecv: DataBinding.Binding.Recv? = null,
-    private val onClickListener: (() -> Unit)? = null
-) : BaseView() {
+class TitleTextV(val text: String? = null, private val textId: Int? = null, private val colorInt: Int? = null, private val colorId: Int? = null, private val dataBindingRecv: DataBinding.Binding.Recv? = null, private val onClickListener: (() -> Unit)? = null) : BaseView {
 
     override fun getType(): BaseView {
         return this
@@ -48,19 +43,15 @@ class TitleTextV(
 
     override fun create(context: Context, callBacks: (() -> Unit)?): View {
 
-
         return TextView(context).also { view ->
-            view.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-            )
+            view.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             text?.let { view.text = it }
             view.gravity = if (isRtl(context)) Gravity.RIGHT else Gravity.LEFT
             textId?.let { view.setText(it) }
             view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             view.setTextColor(Color.parseColor("#9399b3"))
-
+            colorInt?.let { view.setTextColor(colorInt) }
+            colorId?.let { view.setTextColor(context.getColor(colorId)) }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 view.paint.typeface = Typeface.create(null, 400, false)
             } else {
@@ -68,6 +59,7 @@ class TitleTextV(
             }
 
             view.setPadding(0, dp2px(context, 9.75f), dp2px(context, 5f), dp2px(context, 9.75f))
+            onClickListener?.let { view.setOnClickListener { it() } }
             dataBindingRecv?.setView(view)
         }
 

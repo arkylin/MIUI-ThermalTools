@@ -22,6 +22,7 @@
 
 package cn.fkj233.ui.dialog
 
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Typeface
@@ -33,16 +34,24 @@ import android.util.DisplayMetrics
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
-import android.view.ViewTreeObserver
 import android.view.WindowManager
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
+import android.widget.TextView
 import cn.fkj233.miui.R
 import cn.fkj233.ui.activity.dp2px
-import cn.fkj233.ui.activity.getDisplay
 import cn.fkj233.ui.activity.isRtl
 import kotlin.math.roundToInt
 
-class MIUIDialog(context: Context, private val newStyle: Boolean = true, val build: MIUIDialog.() -> Unit) : Dialog(context, R.style.CustomDialog) {
+
+@SuppressLint("ClickableViewAccessibility")
+class MIUIDialog(context: Context, private val newStyle: Boolean = true, val build: MIUIDialog.() -> Unit) :
+    Dialog(context, R.style.CustomDialog) {
+
+    private var finallyCallBacks: ((View) -> Unit)? = null
+
     private val title by lazy {
         TextView(context).also { textView ->
             textView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also {
@@ -61,7 +70,7 @@ class MIUIDialog(context: Context, private val newStyle: Boolean = true, val bui
     private val message by lazy {
         TextView(context).also { textView ->
             textView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also {
-                it.setMargins(dp2px(context, 10f), 0, dp2px(context, 10f), dp2px(context, 5f))
+                it.setMargins(dp2px(context, 20f), 0, dp2px(context, 20f), dp2px(context, 5f))
             }
             textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             textView.setTextColor(context.getColor(R.color.whiteText))
@@ -73,61 +82,28 @@ class MIUIDialog(context: Context, private val newStyle: Boolean = true, val bui
 
     private val editText by lazy {
         EditText(context).also { editText ->
-            editText.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(context, 55f)).also {
+            editText.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).also {
                 it.setMargins(dp2px(context, 30f), dp2px(context, 10f), dp2px(context, 30f), 0)
             }
             editText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             editText.setTextColor(context.getColor(R.color.whiteText))
-            editText.gravity = Gravity.CENTER
-            editText.setPadding(dp2px(context, 8f), dp2px(context, 8f), dp2px(context, 8f), dp2px(context, 8f))
+            editText.gravity = Gravity.CENTER_VERTICAL
+            editText.setPadding(dp2px(context, 20f), dp2px(context, 15f), dp2px(context, 20f), dp2px(context, 15f))
             editText.visibility = View.GONE
             editText.background = context.getDrawable(R.drawable.editview_background)
-            val mHeight = dp2px(context, 55f)
-            val maxHeight = getDisplay(context).height / 2
-            editText.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    editText.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    val params = editText.layoutParams as LinearLayout.LayoutParams
-                    if (editText.lineCount <= 1) {
-                        params.height = mHeight
-                    } else {
-                        var tempHeight = mHeight
-                        for (i in 0..editText.lineCount) {
-                            tempHeight += mHeight / 2 - 20
-                        }
-                        params.height = if (tempHeight >= maxHeight) maxHeight else tempHeight
-                    }
-                    editText.layoutParams = params
-                }
-            })
-            editText.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
-                override fun afterTextChanged(p0: Editable?) {}
-
-                override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-                    val params = editText.layoutParams as LinearLayout.LayoutParams
-                    if (editText.lineCount <= 1) {
-                        params.height = mHeight
-                    } else {
-                        var tempHeight = mHeight
-                        for (i in 0..editText.lineCount) {
-                            tempHeight += mHeight / 2 - 20
-                        }
-                        params.height = if (tempHeight >= maxHeight) maxHeight else tempHeight
-                    }
-                    editText.layoutParams = params
-                }
-            })
+            editText.isSingleLine = true
+            editText.setHintTextColor(context.getColor(R.color.hintText))
         }
     }
 
     private val rButton by lazy {
         Button(context).also { buttonView ->
-            buttonView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(context, 52.5f), 1f).also {
+            buttonView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(context, 48f), 1f).also {
                 it.setMargins(dp2px(context, 25f), 0, dp2px(context, 25f), 0)
                 it.gravity = Gravity.CENTER
             }
-            buttonView.setTextColor(context.getColor(R.color.white))
+            buttonView.typeface = Typeface.defaultFromStyle(Typeface.BOLD)
+            buttonView.setTextColor(context.getColor(R.color.RButtonText))
             buttonView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17.5f)
             buttonView.stateListAnimator = null
             buttonView.background = context.getDrawable(R.drawable.r_button_background)
@@ -137,11 +113,12 @@ class MIUIDialog(context: Context, private val newStyle: Boolean = true, val bui
 
     private val lButton by lazy {
         Button(context).also { buttonView ->
-            buttonView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(context, 52.5f), 1f).also {
+            buttonView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp2px(context, 48f), 1f).also {
                 it.setMargins(dp2px(context, 25f), 0, dp2px(context, 25f), 0)
                 it.gravity = Gravity.CENTER
             }
-            buttonView.setTextColor(context.getColor(R.color.whiteText))
+            buttonView.typeface = Typeface.defaultFromStyle(Typeface.BOLD)
+            buttonView.setTextColor(context.getColor(R.color.LButtonText))
             buttonView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17.5f)
             buttonView.stateListAnimator = null
             buttonView.visibility = View.GONE
@@ -202,45 +179,65 @@ class MIUIDialog(context: Context, private val newStyle: Boolean = true, val bui
         this.title.setText(titleId)
     }
 
-    fun setLButton(text: CharSequence?, enable: Boolean = true, callBacks: (View) -> Unit) {
+    fun setLButton(text: CharSequence?, enable: Boolean = true) {
+        setLButton(text, enable, null)
+    }
+
+    fun setLButton(text: CharSequence?, enable: Boolean = true, callBacks: ((View) -> Unit)?) {
         lButton.apply {
             this.isEnabled = enable
             visibility = View.VISIBLE
             setText(text)
             setOnClickListener {
-                callBacks(it)
+                callBacks?.invoke(it)
+                finallyCallBacks?.invoke(it)
             }
         }
     }
 
-    fun setLButton(textId: Int, enable: Boolean = true, callBacks: (View) -> Unit) {
+    fun setLButton(textId: Int, enable: Boolean = true) {
+        setLButton(textId, enable, null)
+    }
+
+    fun setLButton(textId: Int, enable: Boolean = true, callBacks: ((View) -> Unit)?) {
         lButton.apply {
             this.isEnabled = enable
             visibility = View.VISIBLE
             setText(textId)
             setOnClickListener {
-                callBacks(it)
+                callBacks?.invoke(it)
+                finallyCallBacks?.invoke(it)
             }
         }
     }
 
-    fun setRButton(text: CharSequence?, enable: Boolean = true, callBacks: (View) -> Unit) {
+    fun setRButton(text: CharSequence?, enable: Boolean = true) {
+        setRButton(text, enable, null)
+    }
+
+    fun setRButton(text: CharSequence?, enable: Boolean = true, callBacks: ((View) -> Unit)?) {
         rButton.apply {
             setText(text)
             this.isEnabled = enable
             setOnClickListener {
-                callBacks(it)
+                callBacks?.invoke(it)
+                finallyCallBacks?.invoke(it)
             }
             visibility = View.VISIBLE
         }
     }
 
-    fun setRButton(textId: Int, enable: Boolean = true, callBacks: (View) -> Unit) {
+    fun setRButton(textId: Int, enable: Boolean = true) {
+        setRButton(textId, enable, null)
+    }
+
+    fun setRButton(textId: Int, enable: Boolean = true, callBacks: ((View) -> Unit)?) {
         rButton.apply {
             setText(textId)
             this.isEnabled = enable
             setOnClickListener {
-                callBacks(it)
+                callBacks?.invoke(it)
+                finallyCallBacks?.invoke(it)
             }
             visibility = View.VISIBLE
         }
@@ -264,7 +261,6 @@ class MIUIDialog(context: Context, private val newStyle: Boolean = true, val bui
         }
         super.show()
         val layoutParams = window!!.attributes
-
         layoutParams.dimAmount = 0.5F
         if (newStyle) {
             val resources = context.resources
@@ -279,24 +275,35 @@ class MIUIDialog(context: Context, private val newStyle: Boolean = true, val bui
         window!!.attributes = layoutParams
     }
 
-    fun setMessage(textId: Int) {
+    fun setMessage(textId: Int, isCenter: Boolean = true) {
+        if (isCenter) {
+            message.gravity = Gravity.CENTER
+        } else {
+            message.gravity = Gravity.START
+        }
         message.apply {
             setText(textId)
             visibility = View.VISIBLE
         }
     }
 
-    fun setMessage(text: CharSequence?) {
+    fun setMessage(text: CharSequence, isCenter: Boolean = true) {
+        if (isCenter) {
+            message.gravity = Gravity.CENTER
+        } else {
+            message.gravity = Gravity.START
+        }
         message.apply {
             this.text = text
             visibility = View.VISIBLE
         }
     }
 
-    fun setEditText(text: String, hint: String, editCallBacks: ((String) -> Unit)? = null) {
+    fun setEditText(text: String, hint: String, isSingleLine: Boolean = true, editCallBacks: ((String) -> Unit)? = null) {
         editText.apply {
             setText(text.toCharArray(), 0, text.length)
             this.hint = hint
+            this.isSingleLine = isSingleLine
             visibility = View.VISIBLE
             editCallBacks?.let {
                 addTextChangedListener(object : TextWatcher {
@@ -309,6 +316,10 @@ class MIUIDialog(context: Context, private val newStyle: Boolean = true, val bui
                 })
             }
         }
+    }
+
+    fun finally(callBacks: (View) -> Unit) {
+        finallyCallBacks = callBacks
     }
 
     fun getEditText(): String = editText.text.toString()

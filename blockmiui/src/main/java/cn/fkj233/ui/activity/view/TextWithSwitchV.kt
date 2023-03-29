@@ -22,27 +22,68 @@
 
 package cn.fkj233.ui.activity.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.widget.LinearLayout
+import cn.fkj233.miui.R
 import cn.fkj233.ui.activity.data.DataBinding
 import cn.fkj233.ui.activity.data.LayoutPair
+import cn.fkj233.ui.activity.dp2px
+import cn.fkj233.ui.activity.fragment.MIUIFragment
 
-class TextWithSwitchV(private val textV: TextV, val switchV: SwitchV, private val dataBindingRecv: DataBinding.Binding.Recv? = null): BaseView() {
+class TextWithSwitchV(private val textV: TextV, private val switchV: SwitchV, private val dataBindingRecv: DataBinding.Binding.Recv? = null) : BaseView {
 
     override fun getType(): BaseView = this
 
     override fun create(context: Context, callBacks: (() -> Unit)?): View {
+        textV.notShowMargins(true)
         return LinearContainerV(
             LinearContainerV.HORIZONTAL,
             arrayOf(
-                LayoutPair(textV.create(context, callBacks), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)),
-                LayoutPair(switchV.create(context, callBacks), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).also { it.gravity = Gravity.CENTER_VERTICAL })
-            ),
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT)
-        ).create(context, callBacks).also {
-            dataBindingRecv?.setView(it)
+                LayoutPair(
+                    textV.create(context, callBacks),
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        .also { it.gravity = Gravity.CENTER_VERTICAL }
+                ),
+                LayoutPair(
+                    switchV.create(context, callBacks),
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                        .also { it.gravity = Gravity.CENTER_VERTICAL })
+            ), layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also {
+                it.setMargins(0, dp2px(context, 15.75f), 0, dp2px(context, 15.75f))
+            })
+            .create(context, callBacks).also {
+                dataBindingRecv?.setView(it)
+            }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onDraw(thiz: MIUIFragment, group: LinearLayout, view: View) {
+        thiz.apply {
+            group.apply {
+                addView(view) // 带文本的开关
+                setOnTouchListener { _, motionEvent ->
+                    when (motionEvent.action) {
+                        MotionEvent.ACTION_DOWN -> if (switchV.switch.isEnabled) background = context.getDrawable(R.drawable.ic_main_down_bg)
+                        MotionEvent.ACTION_UP -> {
+                            if (switchV.switch.isEnabled) {
+                                switchV.click()
+                                callBacks?.let { it1 -> it1() }
+                                background = context.getDrawable(R.drawable.ic_main_bg)
+                            }
+                        }
+
+                        else -> background = context.getDrawable(R.drawable.ic_main_bg)
+                    }
+                    true
+                }
+            }
         }
     }
 }
