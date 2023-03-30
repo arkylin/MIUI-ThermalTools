@@ -310,37 +310,39 @@ class MainActivity : MIUIActivity() {
                         getString(R.string.explore_thermal_data), //data专业
                         tips = getString(R.string.explore_thermal_data_tips),
                         onClickListener = {
-                            ShellUtils.execCommand("cp /data/vendor/thermal/config/* "+cacheDir+"/data", true)
-                            var dirsrc = cacheDir.path+"/data/"
+                            ShellUtils.execCommand("rm -rf " + cacheDir + "/data/*", false)
+                            ShellUtils.execCommand("cp " + datadirsrc + "/* " + cacheDir + "/data && chmod 777 " + cacheDir + "/data/*", true)
+                            var dirsrc = cacheDir.path+"/data/" // cache/data/
+//                            var dirsrc = "/data/user/0/com.thermal.tools/cache/data/"
                             var dir = File(dirsrc)
                             var files: Array<out String>? = dir.list()
                             register("data_expert_mode", getString(R.string.explore_thermal_data), false) {
-                                async = object : AsyncInit {
-                                    override val skipLoadItem: Boolean = true
-                                    override fun onInit(fragment: MIUIFragment) {
-                                        fragment.showLoading()
-                                        Thread.sleep(100)
-//                                        fragment.addItem(TextV("Test"))
-                                        fragment.closeLoading()
-//                        showToast(getString(R.string.got_file))
-                                        fragment.initData()
-                                    }
-                                }
+//                                async = object : AsyncInit {
+//                                    override val skipLoadItem: Boolean = true
+//                                    override fun onInit(fragment: MIUIFragment) {
+//                                        fragment.showLoading()
+//                                        Thread.sleep(100)
+////                                        fragment.addItem(TextV("Test"))
+//                                        fragment.closeLoading()
+////                        showToast(getString(R.string.got_file))
+//                                        fragment.initData()
+//                                    }
+//                                }
                                 val thermalfiles = Utils.getFileLists(files)
                                 for (thermalfile in thermalfiles) {
                                     val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
                                     if (Utils.showThermalTips(thermalnametips) != "不要动") {
                                         TextSummaryArrow(
                                             TextSummaryV(
-                                                thermalfile,
+                                                text = thermalfile,
                                                 tips = Utils.showThermalTips(thermalnametips),
                                                 onClickListener = {
                                                     showFragment("Viewdata$thermalfile")
                                                 })
                                         )
                                         val file = File(filesDir.path + "/data", thermalfile)
-                                        val output = FileOutputStream(file.absolutePath)
                                         val input = FileInputStream(dirsrc + thermalfile)
+                                        val output = FileOutputStream(file.absolutePath)
                                         AESCode.decrypt(input, output)
                                         input.close()
                                         output.close()

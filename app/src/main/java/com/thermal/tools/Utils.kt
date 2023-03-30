@@ -65,8 +65,8 @@ object Utils {
             "MONITOR-TEMP_STATE" -> a = "TEMP_STATE"
             "SS-LMH_CPU4" -> a = "LMH_CPU4"
             "SS-LMH_CPU7" -> a = "LMH_CPU7"
-            "MONITOR-MODEM_PA_NR" -> a = "基站、信号相关"
-            "MONITOR-MODEM_PA_LTE" -> a = "基站、信号相关"
+            "MODEM_PA_NR" -> a = "基站、信号相关"
+            "MODEM_PA_LTE" -> a = "基站、信号相关"
 
         }
         return a
