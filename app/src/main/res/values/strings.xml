@@ -42,9 +42,9 @@
     <string name="BlockMiui">BlockMIUI</string>
     <string name="author_name">Arkylin</string>
     <string name="Scene">Scene4</string>
-    <string name="private_text">本应用不会上传、使用您的任何个人信息，请放心使用。\n是否继续使用？</string>
+    <string name="private_text">本应用不会上传、使用您的任何个人信息，请放心使用。\n\n正式发布后，本应用将会开源\n\n本应用还在开发阶段，肯定会有不完美的地方，还请多包涵，有问题可以点击关于，加群反馈\n\n是否继续使用？</string>
     <string name="explore_thermal_vendor">出厂温控浏览</string>
     <string name="explore_thermal_vendor_tips">预览/system/vendor/etc中的温控</string>
-    <string name="QQqun">QQ群</string>
+    <string name="QQqun">一键反馈</string>
     <string name="QQqunum">QQ群号：327412720</string>
 </resources>

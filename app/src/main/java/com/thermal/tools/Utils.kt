@@ -46,33 +46,28 @@ object Utils {
     fun showConfTips(string: String): String {
         var a = "不要动"
         when (string) {
-            "SS-CPU0" -> a = "0号CPU"
-            "SS-CPU4" -> a = "4号CPU"
-            "SS-CPU7" -> a = "7号CPU"
-            "MONITIOR-SENSOR0" -> a = "传感器"
-            "SIC-BAT" -> a = "电池"
-            "MONITOR-BAT" -> a = "电池监控"
-            "MONITOR-FLASH" -> a = "FLASH温度"
-            "MONITOR-CCC" -> a = "CCC温度"
-            "MONITOR-BOOST_LIMIT" -> a = "性能模式下运行miHoYo游戏"
-            "MONITOR-BCL" -> a = "性能模式-日常"
-            "MONITOR-GPU" -> a = "GPU温度"
-            "MONITOR-BACKLIGHT" -> a = "背光亮度"
-            "" -> a = "不要动"
-            "mgame" -> a = "运行miHoYo游戏"
-            "navigation" -> a = "运行导航App"
-            "nolimits" -> a = "跑分软件，例如：安兔兔"
-            "normal" -> a = "日常"
-            "per-class0" -> a = "性能模式下，特殊应用分组，例如：QQ"
-            "per-navigation" -> a = "不清楚"
-            "per-normal" -> a = "性能模式-日常"
-            "per-video" -> a = "性能模式下播放视频"
-            "phone" -> a = "通话，包括QQ、微信"
-            "region-map" -> a = "不要动"
-            "tgame" -> a = "腾讯游戏"
-            "video" -> a = "播放视频"
-            "videochat" -> a = "视频通话"
-            "yuanshen" -> a = "原神游戏中开启性能模式"
+            "BAT_SOC" -> a = "电池SOC"
+            "VIRTUAL-SENSOR0" -> a = "虚拟传感器权值配置"
+            "SS-CPU0" -> a = "CPU0 CPU1 CPU2 CPU3"
+            "SS-CPU4" -> a = "CPU4 CPU5 CPU6"
+            "SS-CPU7" -> a = "CPU7"
+            "MONTIOR-SENSOR0" -> a = "虚拟传感器校正？（不清楚）"
+            "SIC-BAT" -> a = "充电流控配置"
+            "MONITOR-BAT" -> a = "充电档位调节"
+            "MONITOR-FLASH" -> a = "FLASH控制"
+            "MONITOR-CCC" -> a = "拔CPU2、CPU3、CPU7"
+            "MONITOR-BOOST_LIMIT" -> a = "Boost升频限制"
+            "MONITOR-BCL" -> a = "保CPU4 拔CPU2 CPU3 CPU7"
+            "MONITOR-GPU" -> a = "GPU频率档位控制"
+            "MONITOR-BACKLIGHT" -> a = "背光亮度控制"
+            "MONITOR-MODEM-5GTO4G" -> a = "达到温度切换5G到4G"
+            "MONITOR-PARALLEL-TO-SERIAL" -> a = "应用市场下载限制"
+            "MONITOR-TEMP_STATE" -> a = "TEMP_STATE"
+            "SS-LMH_CPU4" -> a = "LMH_CPU4"
+            "SS-LMH_CPU7" -> a = "LMH_CPU7"
+            "MONITOR-MODEM_PA_NR" -> a = "基站、信号相关"
+            "MONITOR-MODEM_PA_LTE" -> a = "基站、信号相关"
+
         }
         return a
     }
@@ -112,6 +107,16 @@ object Utils {
 //                }
 //                if (parts!=null) {
                     return parts.drop(1)
+//                }
+            } else if (foundSection && line.startsWith("$parameter ")) {
+                val parts = line.split(" ")
+//                if (parts.size == 2) {
+//                    return parts[1]
+//                } else {
+//                    return parts.drop(1)
+//                }
+//                if (parts!=null) {
+                return parts.drop(1)
 //                }
             }
         }

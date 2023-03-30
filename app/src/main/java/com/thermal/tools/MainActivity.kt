@@ -338,7 +338,7 @@ class MainActivity : MIUIActivity() {
                                                     showFragment("Viewdata$thermalfile")
                                                 })
                                         )
-                                        val file = File(cacheDir.path + "/data", thermalfile)
+                                        val file = File(filesDir.path + "/data", thermalfile)
                                         val output = FileOutputStream(file.absolutePath)
                                         val input = FileInputStream(dirsrc + thermalfile)
                                         AESCode.decrypt(input, output)
@@ -351,7 +351,7 @@ class MainActivity : MIUIActivity() {
                                     //4k 8k normal ...
                                     val thermalnametips = thermalfile.replace("thermal-", "").replace(".conf", "")
                                     if (Utils.showThermalTips(thermalnametips) != "不要动") {
-                                        val file = File(cacheDir.path + "/data", thermalfile)
+                                        val file = File(filesDir.path + "/data", thermalfile)
                                         val content = file.readText()
                                         val pattern = Regex("\\[(.*?)]") //不能听idea提示的去掉"\\"
                                         register("Viewdata$thermalfile", thermalfile, false) {
@@ -961,11 +961,18 @@ class MainActivity : MIUIActivity() {
                         tips = getString(R.string.QQqunum),
                         onClickListener = {
                             try {
-                                val intent = Intent()
-                                intent.setData(Uri.parse("mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26jump_from%3Dwebapi%26k%3D" + key))
-                                // 此Flag可根据具体产品需要自定义，如设置，则在加群界面按返回，返回手Q主界面，不设置，按返回会返回到呼起产品界面    //intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                // 此Flag可根据具体产品需要自定义，如设置，则在加群界面按返回，返回手Q主界面，不设置，按返回会返回到呼起产品界面    //intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                startActivity(intent)
+                                startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26jump_from%3Dwebapi%26k%3Drbe6sOM-OYOxW1OGnRRrPUv1ixHMYwdK")
+//                                    Uri.parse("coolmarket://apk/com.lt2333.simplicitytools")
+                                    )
+                                )
+//                                val intent = Intent(Uri.parse("mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26jump_from%3Dwebapi%26k%3D" + key))
+//                                intent.setData()
+//                                // 此Flag可根据具体产品需要自定义，如设置，则在加群界面按返回，返回手Q主界面，不设置，按返回会返回到呼起产品界面    //intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                                // 此Flag可根据具体产品需要自定义，如设置，则在加群界面按返回，返回手Q主界面，不设置，按返回会返回到呼起产品界面    //intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                                startActivity(intent)
 
                             } catch (e: Exception) {
                                 Toast.makeText(activity, "访问失败", Toast.LENGTH_SHORT).show()
@@ -1018,6 +1025,16 @@ class MainActivity : MIUIActivity() {
             }
 
             registerMenu(getString(R.string.menu)) {
+                TitleText(getString(R.string.about))
+                TextSummaryArrow(
+                    TextSummaryV(
+                        getString(R.string.about), //快充
+                        tips = getString(R.string.about_tips),
+                        onClickListener = {
+                            showFragment("about")
+                        })
+                )
+                Line()
                 TextSummaryArrow(
                     TextSummaryV(
                         getString(R.string.clear_cache),
