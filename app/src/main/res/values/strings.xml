@@ -8,7 +8,7 @@
     <string name="batch_mode">批量设置</string>
     <string name="super_charge">满血快充设置</string>
     <string name="onekey_mode_tips">选择有多种已经配置好的温控文件\n（极致性能、无限制来源于Scene4）\n部分系统版本重启手机后生效</string>
-    <string name="batch_mode_tips">批量调整温控文件（开发中）</string>
+    <string name="batch_mode_tips">批量调整温控文件（测试）</string>
     <string name="super_charge_tips">由Super_Charge（Magisk模块）进化而来\n可以调整温度-功率（开发中）</string>
     <string name="expert_mode_tips">编辑/data/vendor/thermal中的温控配置（开发中）</string>
     <string name="edit_thermal_file">编辑温控文件</string>
@@ -22,7 +22,7 @@
     <string name="cancel">取消</string>
     <string name="confirm">确认</string>
     <string name="thermal_super_charge">Super Charge</string>
-    <string name="thermal_super_charge_tips">版本：20220329\n本应用优先于Magisk模块，可以删除原来的模块</string>
+    <string name="thermal_super_charge_tips">版本：20230725\n本应用优先于Magisk模块，可以删除原来的模块</string>
     <string name="thermal_extreme">极致性能</string>
     <string name="thermal_extreme_tips">移除部分CPU温控</string>
     <string name="thermal_danger">无限制温控</string>
@@ -47,4 +47,10 @@
     <string name="explore_thermal_vendor_tips">预览/system/vendor/etc中的温控</string>
     <string name="QQqun">一键反馈</string>
     <string name="QQqunum">QQ群号：327412720</string>
+    <string name="ban_wangsu">停用网速限制</string>
+    <string name="ban_5gto4g">禁用高温下移动数据5G切换4G</string>
+    <string name="ban_partoser">禁用应用市场并行转串行下载</string>
+    <string name="ban_backlight">禁用高温屏幕亮度限制</string>
+    <string name="ban_gpu">禁用高温GPU限制</string>
+    <string name="ban_charge">禁用充电限制</string>
 </resources>

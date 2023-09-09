@@ -2,10 +2,14 @@ package com.thermal.tools
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.content.res.AssetManager
+import cn.fkj233.ui.activity.MIUIActivity.Companion.activity
 import cn.fkj233.ui.dialog.MIUIDialog
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.FileWriter
 import java.nio.file.Files
 
 object Utils {
@@ -247,5 +251,46 @@ object Utils {
         }
     }
 
+    fun batchBan(sectionToRemove: String) {
+        val thermalfiles = getFileLists(File(activity.cacheDir.path,"batch").list())
+        val defile = File(activity.filesDir.path+"/batch","de")
+        if(!defile.exists()) {
+            defile.mkdirs()
+        }
+        val defile1 = File(activity.filesDir.path+"/batch","en")
+        if(!defile1.exists()) {
+            defile1.mkdirs()
+        }
+        for (thermalfile in thermalfiles) {
+            val output = FileOutputStream(File(activity.filesDir.path + "/batch/de", thermalfile).absolutePath)
+            val input = FileInputStream(File(activity.cacheDir.path + "/batch", thermalfile).absolutePath)
+            AESCode.decrypt(input, output)
+            input.close()
+            output.close()
+            //TODO: 处理禁用
+            val thermalname = thermalfile.replace("thermal-", "").replace(".conf", "").uppercase()
+            var sectionToRemove1 = thermalname + "-" + sectionToRemove
+            val context = File(activity.filesDir.path + "/batch/de", thermalfile).readText()
+            val regex = Regex("""\[(.*?)\]([\s\S]*?)(?=\n\n|\z)""")
+            val result = regex.replace(context) { matchResult ->
+                val section = matchResult.groupValues[1]
+                val content = matchResult.groupValues[2].trim()
+                if (section == sectionToRemove1) {
+                    "" // Remove the section
+                } else {
+                    "[${section}]\n$content"
+                }
+            }
+            val fileWriter = FileWriter(activity.filesDir.path + "/batch/de/" + thermalfile)
+            fileWriter.write(result.trim())
+            fileWriter.close()
 
+            //
+            val output1 = FileOutputStream(File(activity.filesDir.path + "/batch/en", thermalfile).absolutePath)
+            val input1 = FileInputStream(File(activity.filesDir.path + "/batch/de", thermalfile).absolutePath)
+            AESCode.encrypt(input1,output1)
+            input1.close()
+            output1.close()
+        }
+    }
 }
